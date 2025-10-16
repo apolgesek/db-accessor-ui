@@ -1,0 +1,75 @@
+<h2 nz-typography>Add policy</h2>
+<nz-divider></nz-divider>
+<nz-spin [nzSpinning]="isLoading">
+  <form nz-form [formGroup]="form" (ngSubmit)="submitForm()" nzLayout="vertical">
+    <nz-form-item>
+      <nz-form-label [nzSm]="6" [nzXs]="24" nzRequired nzFor="userName">User</nz-form-label>
+      <nz-form-control [nzSm]="14" [nzXs]="24" nzErrorTip="User field is required">
+        <input nz-input formControlName="userName" id="userName" />
+      </nz-form-control>
+    </nz-form-item>
+    <nz-form-item>
+      <nz-form-label [nzSm]="6" [nzXs]="24" nzFor="tableName" nzRequired>
+        <span>Table</span>
+      </nz-form-label>
+      <nz-form-control [nzSm]="14" [nzXs]="24" nzErrorTip="Table field is required">
+        <input nz-input id="tableName" formControlName="tableName" />
+      </nz-form-control>
+    </nz-form-item>
+    <nz-form-item>
+      <nz-form-label [nzSm]="6" [nzXs]="24" nzFor="partitionKey" nzRequired>
+        <span>Partition key</span>
+      </nz-form-label>
+      <nz-form-control [nzSm]="14" [nzXs]="24" nzErrorTip="Partition key field is required">
+        <input nz-input id="partitionKey" formControlName="partitionKey" />
+      </nz-form-control>
+    </nz-form-item>
+    <nz-form-item>
+      <nz-form-label [nzSm]="6" [nzXs]="24" nzFor="time" nzRequired>
+        <span>Duration</span>
+      </nz-form-label>
+      <nz-form-control [nzSm]="14" [nzXs]="24" nzErrorTip="Duration field is required">
+        <input nz-input type="number" id="duration" formControlName="duration" />
+      </nz-form-control>
+    </nz-form-item>
+    <nz-form-item nz-row class="register-area agreement">
+      <nz-form-control [nzSpan]="14" [nzOffset]="6" nzErrorTip="Agreement is required">
+        <label nz-checkbox formControlName="agree">
+          <span> I confirm the data is valid </span>
+        </label>
+      </nz-form-control>
+    </nz-form-item>
+    <nz-form-item nz-row class="register-area">
+      <nz-form-control [nzSpan]="14" [nzOffset]="6">
+        <button nz-button nzType="primary">Submit</button>
+      </nz-form-control>
+    </nz-form-item>
+  </form>
+</nz-spin>
+
+<h2>Active policies</h2>
+<nz-divider></nz-divider>
+<nz-table #basicTable [nzData]="list">
+  <thead>
+    <tr>
+      <th>User</th>
+      <th>Table</th>
+      <th>Partition key</th>
+      <th>Policy id</th>
+      <th>Created at</th>
+      <th>Expires at</th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (data of basicTable.data; track data) {
+    <tr>
+      <td>{{ data.user }}</td>
+      <td>{{ data.table }}</td>
+      <td>{{ data.partitionKey }}</td>
+      <td>{{ data.policyId }}</td>
+      <td>{{ data.creationDate | date : 'yyyy-MM-dd HH:mm:ss' }}</td>
+      <td>{{ data.expiresAt | date : 'yyyy-MM-dd HH:mm:ss' }}</td>
+    </tr>
+    }
+  </tbody>
+</nz-table>
