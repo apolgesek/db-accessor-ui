@@ -36,10 +36,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Angular (prod)
+      - name: Build Angular
         run: npx ng build --configuration production
 
-      - name: Resolve dist path (Angular ≥16/17 friendly)
+      - name: Resolve dist path
         id: dist
         shell: bash
         run: |
@@ -82,3 +82,64 @@ jobs:
           aws cloudfront create-invalidation \
             --distribution-id "${CLOUDFRONT_DISTRIBUTION_ID}" \
             --paths "/*"
+
+      - name: Decide semver bump from labels
+        id: bump
+        if: ${{ success() }}
+        shell: bash
+        env:
+          PR_LABELS_JSON: ${{ toJson(github.event.pull_request.labels) }}
+        run: |
+          set -euo pipefail
+          bump=patch
+          if echo "$PR_LABELS_JSON" | jq -e '.[] | select(.name=="semver:major")' >/dev/null; then
+            bump=major
+          elif echo "$PR_LABELS_JSON" | jq -e '.[] | select(.name=="semver:minor")' >/dev/null; then
+            bump=minor
+          elif echo "$PR_LABELS_JSON" | jq -e '.[] | select(.name=="semver:patch")' >/dev/null; then
+            bump=patch
+          fi
+          echo "bump=$bump" >> "$GITHUB_OUTPUT"
+
+      - name: Tag release
+        id: tag
+        if: ${{ success() }}
+        shell: bash
+        env:
+          BUMP: ${{ steps.bump.outputs.bump }}
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Ensure tags are available
+          git fetch --tags --force
+
+          # Fallback to v0.0.0 if no tags exist
+          LAST_TAG="$(git describe --tags --abbrev=0 2>/dev/null || echo 'v0.0.0')"
+          VER="${LAST_TAG#v}"
+          IFS='.' read -r MA MI PA <<< "${VER}"
+
+          re='^[0-9]+$'
+          [[ "$MA" =~ $re ]] || MA=0
+          [[ "$MI" =~ $re ]] || MI=0
+          [[ "$PA" =~ $re ]] || PA=0
+
+          case "${BUMP}" in
+            major) MA=$((MA+1)); MI=0; PA=0 ;;
+            minor) MI=$((MI+1)); PA=0 ;;
+            patch) PA=$((PA+1)) ;;
+          esac
+
+          NEW_TAG="v${MA}.${MI}.${PA}"
+
+          # Idempotency: skip if tag already exists
+          if git rev-parse -q --verify "refs/tags/${NEW_TAG}" >/dev/null; then
+            echo "Tag ${NEW_TAG} already exists; skipping push."
+            exit 0
+          fi
+
+          # Tag the merge commit that actually landed in main
+          git tag -a "${NEW_TAG}" "${{ github.event.pull_request.merge_commit_sha }}" -m "release: ${NEW_TAG}"
+          git push origin "${NEW_TAG}"
+          echo "new_tag=${NEW_TAG}" >> "$GITHUB_OUTPUT"
