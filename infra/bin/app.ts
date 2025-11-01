@@ -22,5 +22,4 @@ new StaticSiteStack(app, 'StaticSiteStack', {
 
   githubOrg: 'apolgesek',
   githubRepo: 'db-accessor-ui',
-  githubBranch: 'main',
 });
