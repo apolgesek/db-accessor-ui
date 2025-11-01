@@ -6,7 +6,7 @@ on:
     types: [closed] # run when a PR gets closed; we'll guard for "merged" below
 
 permissions:
-  contents: read
+  contents: write # to create tags
   id-token: write # for OIDC to assume the AWS role
 
 concurrency:
