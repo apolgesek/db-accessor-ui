@@ -157,7 +157,7 @@ export class StaticSiteStack extends cdk.Stack {
       {
         StringEquals: {
           'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com',
-          'token.actions.githubusercontent.com:sub': `repo:${props.githubOrg}/${props.githubRepo}:ref:refs/heads/${props.githubBranch}`,
+          'token.actions.githubusercontent.com:sub': `repo:${props.githubOrg}/${props.githubRepo}:*`,
         },
       },
       'sts:AssumeRoleWithWebIdentity'
