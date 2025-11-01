@@ -122,6 +122,7 @@ export class StaticSiteStack extends cdk.Stack {
     const distributionArn = cdk.Arn.format(
       {
         service: 'cloudfront',
+        region: '',
         resource: 'distribution',
         resourceName: distribution.attrId,
       },
