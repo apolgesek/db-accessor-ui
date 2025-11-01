@@ -17,10 +17,10 @@ new StaticSiteStack(app, 'StaticSiteStack', {
   // acmCertificateArn: 'arn:aws:acm:us-east-1:123456789012:certificate/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
   // alternateDomainName: 'app.example.com',
 
-  createGitHubOidcProvider: false,
   existingGitHubOidcProviderArn:
     'arn:aws:iam::058264309711:oidc-provider/token.actions.githubusercontent.com',
 
   githubOrg: 'apolgesek',
   githubRepo: 'db-accessor-ui',
+  githubBranch: 'main',
 });

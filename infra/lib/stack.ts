@@ -33,13 +33,6 @@ export interface StaticSiteStackProps extends cdk.StackProps {
   alternateDomainName?: string;
 
   /**
-   * If true, create the GitHub OIDC provider in this account.
-   * If false, provide existingGitHubOidcProviderArn.
-   * @default true
-   */
-  createGitHubOidcProvider?: boolean;
-
-  /**
    * Existing OIDC provider ARN if not creating a new one.
    */
   existingGitHubOidcProviderArn?: string;
@@ -53,6 +46,11 @@ export interface StaticSiteStackProps extends cdk.StackProps {
    * GitHub repository name.
    */
   githubRepo: string;
+
+  /**
+   * GitHub repository branch.
+   */
+  githubBranch: string;
 }
 
 export class StaticSiteStack extends cdk.Stack {
@@ -145,21 +143,11 @@ export class StaticSiteStack extends cdk.Stack {
       })
     );
 
-    // --- GitHub OIDC provider (create or import) ---
-    const createProvider = props.createGitHubOidcProvider ?? true;
-    const githubThumbprint = '6938fd4d98bab03faadb97b34396831e3780aea1';
-
-    const oidcProvider = createProvider
-      ? new iam.OpenIdConnectProvider(this, 'GitHubOidcProvider', {
-          url: 'https://token.actions.githubusercontent.com',
-          clientIds: ['sts.amazonaws.com'],
-          thumbprints: [githubThumbprint],
-        })
-      : iam.OpenIdConnectProvider.fromOpenIdConnectProviderArn(
-          this,
-          'GitHubOidcProvider',
-          props.existingGitHubOidcProviderArn!
-        );
+    const oidcProvider = iam.OpenIdConnectProvider.fromOpenIdConnectProviderArn(
+      this,
+      'GitHubOidcProvider',
+      props.existingGitHubOidcProviderArn!
+    );
 
     // --- IAM role for GitHub Actions (OIDC) ---
     const assumedBy = new iam.FederatedPrincipal(
@@ -169,12 +157,7 @@ export class StaticSiteStack extends cdk.Stack {
       {
         StringEquals: {
           'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com',
-        },
-        StringLike: {
-          'token.actions.githubusercontent.com:sub': [
-            `repo:${props.githubOrg}/${props.githubRepo}:ref:refs/heads/*`,
-            `repo:${props.githubOrg}/${props.githubRepo}:pull_request`,
-          ],
+          'token.actions.githubusercontent.com:sub': `repo:${props.githubOrg}/${props.githubRepo}:ref:refs/heads/${props.githubBranch}`,
         },
       },
       'sts:AssumeRoleWithWebIdentity'
