@@ -118,6 +118,7 @@ jobs:
 
           # Fallback to v0.0.0 if no tags exist
           LAST_TAG="$(git describe --tags --abbrev=0 2>/dev/null || echo 'v0.0.0')"
+          echo "Last tag: ${LAST_TAG}"
           VER="${LAST_TAG#v}"
           IFS='.' read -r MA MI PA <<< "${VER}"
 
