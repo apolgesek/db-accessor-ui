@@ -16,7 +16,10 @@ jobs:
       - uses: webiny/action-conventional-commits@v1.3.0
         with:
           allowed-commit-types: 'feat,fix,refactor,chore'
+  build-angular:
+    runs-on: ubuntu-latest
 
+    steps:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
