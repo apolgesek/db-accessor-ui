@@ -16,3 +16,15 @@ jobs:
       - uses: webiny/action-conventional-commits@v1.3.0
         with:
           allowed-commit-types: 'feat,fix,refactor,chore'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Angular
+        run: npx ng build --configuration production
