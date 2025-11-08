@@ -99,6 +99,7 @@ jobs:
           elif echo "$PR_LABELS_JSON" | jq -e '.[] | select(.name=="semver:patch")' >/dev/null; then
             bump=patch
           fi
+          echo "bump=$bump"
           echo "bump=$bump" >> "$GITHUB_OUTPUT"
 
       - name: Tag release
