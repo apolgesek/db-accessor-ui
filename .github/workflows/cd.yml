@@ -133,6 +133,7 @@ jobs:
           esac
 
           NEW_TAG="v${MA}.${MI}.${PA}"
+          echo "New tag: ${NEW_TAG}"
 
           # Idempotency: skip if tag already exists
           if git rev-parse -q --verify "refs/tags/${NEW_TAG}" >/dev/null; then
