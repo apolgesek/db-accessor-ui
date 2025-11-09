@@ -17,7 +17,8 @@ env:
   AWS_REGION: eu-central-1
   S3_BUCKET: ${{ vars.S3_BUCKET }}
   CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
-  AWS_ROLE_TO_ASSUME_ARN: ${{ vars.AWS_ROLE_TO_ASSUME_ARN }} # from the CFN output (GitHubDeployRoleArn)
+  APP_DEPLOY_ROLE_TO_ASSUME_ARN: ${{ vars.APP_DEPLOY_ROLE_TO_ASSUME_ARN }}
+  CDK_ROLE_TO_ASSUME_ARN: ${{ vars.CDK_ROLE_TO_ASSUME_ARN }}
 
 jobs:
   changes:
