@@ -7,10 +7,15 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  id-token: write
 
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  AWS_REGION: eu-central-1
+  AWS_ROLE_TO_ASSUME_ARN: ${{ vars.AWS_ROLE_TO_ASSUME_ARN }}
 
 jobs:
   validate-conventional-commits:
@@ -129,3 +134,47 @@ jobs:
 
       - name: Run linter
         run: npx ng lint
+
+  cdk-diff:
+    needs: validate-conventional-commits
+    runs-on: ubuntu-latest
+    environment: dev
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials for CDK diff
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Node.js for CDK
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install infra dependencies
+        working-directory: infra
+        run: npm ci
+
+      - name: Run CDK diff
+        id: cdk_diff
+        working-directory: infra
+        run: |
+          npx cdk diff --all > cdk-diff.txt || true
+          cat cdk-diff.txt
+
+      - name: Add CDK diff to summary
+        if: always()
+        working-directory: infra
+        run: |
+          echo "## CDK Diff" >> "$GITHUB_STEP_SUMMARY"
+          if [ -s cdk-diff.txt ]; then
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            cat cdk-diff.txt >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No CDK diff output." >> "$GITHUB_STEP_SUMMARY"
+          fi
