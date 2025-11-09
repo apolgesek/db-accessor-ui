@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NzAlertModule } from 'ng-zorro-antd/alert';
@@ -11,9 +11,18 @@ import { NzMessageService } from 'ng-zorro-antd/message';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { NzTableModule } from 'ng-zorro-antd/table';
 import { finalize, switchMap } from 'rxjs';
-import { PoliciesHttp } from './services/policies-http';
+import { PoliciesHttp, PolicyResponse } from './services/policies-http';
 import { ActivatedRoute } from '@angular/router';
 import { DatePipe } from '@angular/common';
+
+type Policy = {
+  user: string;
+  table: string;
+  partitionKey: string;
+  policyId: string;
+  creationDate: string;
+  expiresAt: string;
+};
 
 @Component({
   selector: 'app-policies',
@@ -32,9 +41,9 @@ import { DatePipe } from '@angular/common';
   templateUrl: './policies.html',
   styleUrl: './policies.scss',
 })
-export class Policies {
+export class Policies implements OnInit {
   isLoading = false;
-  list: any[] = [];
+  list: Policy[] = [];
   private readonly fb = inject(FormBuilder);
   private readonly policiesHttp = inject(PoliciesHttp);
   private readonly destroyRef = inject(DestroyRef);
@@ -79,7 +88,7 @@ export class Policies {
       });
   }
 
-  private mapPolicies(policies: any[]): any[] {
+  private mapPolicies(policies: PolicyResponse[]): Policy[] {
     return policies.map((p) => {
       const fragments = p.policyName.split('_');
       return {

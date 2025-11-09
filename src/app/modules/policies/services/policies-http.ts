@@ -3,6 +3,13 @@ import { AddPolicyRequest } from '../models';
 import { HttpClient } from '@angular/common/http';
 import { BASE_URL } from '../../../core';
 
+export type PolicyResponse = {
+  policyName: string;
+  policyId: string;
+  creationDate: string;
+  expiresAt: string;
+};
+
 @Injectable({
   providedIn: 'root',
 })
@@ -15,6 +22,6 @@ export class PoliciesHttp {
   }
 
   getPolicies() {
-    return this.http.get<any[]>(`${this.baseUrl}/access`);
+    return this.http.get<PolicyResponse[]>(`${this.baseUrl}/access`);
   }
 }
