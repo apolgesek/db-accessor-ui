@@ -139,15 +139,15 @@ export class StaticSiteStack extends cdk.Stack {
       })
     );
 
+    // --- OIDC provider (imported) ---
     const oidcProvider = iam.OpenIdConnectProvider.fromOpenIdConnectProviderArn(
       this,
       'GitHubOidcProvider',
       props.existingGitHubOidcProviderArn!
     );
 
-    // --- IAM role for GitHub Actions (OIDC) ---
+    // --- Federated principal for GitHub Actions ---
     const assumedBy = new iam.FederatedPrincipal(
-      // Works for both created and imported providers
       (oidcProvider as iam.OpenIdConnectProvider).openIdConnectProviderArn ??
         props.existingGitHubOidcProviderArn!,
       {
@@ -161,10 +161,12 @@ export class StaticSiteStack extends cdk.Stack {
       'sts:AssumeRoleWithWebIdentity'
     );
 
+    // --- Runtime deploy role: S3 upload + CloudFront invalidation only ---
     const deployRole = new iam.Role(this, 'GitHubDeployRole', {
       roleName: `${projectName}-github-deploy`,
       assumedBy,
-      // inline policy below
+      description:
+        'Role assumed by GitHub Actions to upload static assets and invalidate CloudFront',
     });
 
     // S3 write + list for the target bucket
@@ -195,92 +197,45 @@ export class StaticSiteStack extends cdk.Stack {
       })
     );
 
-    // --- IAM role for CDK diff/deploy from GitHub Actions (OIDC) ---
+    // --- CDK role: for cdk diff/deploy of this stack ---
     const cdkRole = new iam.Role(this, 'GitHubCdkRole', {
       roleName: `${projectName}-github-cdk`,
-      assumedBy, // same federated principal as deployRole
+      assumedBy,
       description: 'Role assumed by GitHub Actions to run cdk diff/deploy for this stack',
     });
 
-    const thisStackArn = cdk.Stack.of(this).formatArn({
-      service: 'cloudformation',
-      resource: 'stack',
-      resourceName: `${cdk.Stack.of(this).stackName}/*`,
+    const stack = cdk.Stack.of(this);
+
+    // --- CDK bootstrap integration (assume bootstrap roles + read bootstrap version) ---
+    const qualifier = 'hnb659fds'; // default CDK bootstrap qualifier
+
+    const bootstrapVersionParamArn = stack.formatArn({
+      service: 'ssm',
+      resource: 'parameter',
+      resourceName: `/cdk-bootstrap/${qualifier}/version`,
     });
 
-    // Allow cdk diff/deploy against THIS stack
+    const filePublishingRoleArn = `arn:aws:iam::${stack.account}:role/cdk-${qualifier}-file-publishing-role-${stack.account}-${stack.region}`;
+    const deployRoleArn = `arn:aws:iam::${stack.account}:role/cdk-${qualifier}-deploy-role-${stack.account}-${stack.region}`;
+    const lookupRoleArn = `arn:aws:iam::${stack.account}:role/cdk-${qualifier}-lookup-role-${stack.account}-${stack.region}`;
+
+    // Allow GitHubCdkRole to assume CDK bootstrap roles (assets, deploy, lookup)
     cdkRole.addToPolicy(
       new iam.PolicyStatement({
-        sid: 'CloudFormationThisStack',
+        sid: 'AssumeCdkBootstrapRoles',
         effect: iam.Effect.ALLOW,
-        actions: [
-          // read / plan
-          'cloudformation:DescribeStacks',
-          'cloudformation:DescribeStackEvents',
-          'cloudformation:DescribeStackResources',
-          'cloudformation:GetTemplate',
-          'cloudformation:GetTemplateSummary',
-          'cloudformation:ListStackResources',
-          'cloudformation:DescribeChangeSet',
-          // deploy
-          'cloudformation:CreateChangeSet',
-          'cloudformation:ExecuteChangeSet',
-          'cloudformation:DeleteChangeSet',
-          'cloudformation:CreateStack',
-          'cloudformation:UpdateStack',
-          'cloudformation:DeleteStack',
-        ],
-        resources: [thisStackArn],
+        actions: ['sts:AssumeRole'],
+        resources: [filePublishingRoleArn, deployRoleArn, lookupRoleArn],
       })
     );
 
-    // Allow managing the bucket defined in this stack
+    // Allow reading the bootstrap stack version (CDK requires this)
     cdkRole.addToPolicy(
       new iam.PolicyStatement({
-        sid: 'ManageSiteBucket',
+        sid: 'ReadCdkBootstrapVersion',
         effect: iam.Effect.ALLOW,
-        actions: [
-          's3:CreateBucket',
-          's3:DeleteBucket',
-          's3:PutBucketPolicy',
-          's3:PutBucketVersioning',
-          's3:PutEncryptionConfiguration',
-          's3:GetBucketPolicy',
-          's3:GetBucketLocation',
-          's3:ListBucket',
-        ],
-        resources: [bucket.bucketArn],
-      })
-    );
-
-    // Allow managing the CloudFront distribution from this stack
-    cdkRole.addToPolicy(
-      new iam.PolicyStatement({
-        sid: 'ManageCloudFrontDistribution',
-        effect: iam.Effect.ALLOW,
-        actions: [
-          'cloudfront:GetDistribution',
-          'cloudfront:GetDistributionConfig',
-          'cloudfront:UpdateDistribution',
-          'cloudfront:CreateDistribution',
-          'cloudfront:DeleteDistribution',
-        ],
-        resources: [distributionArn],
-      })
-    );
-
-    // Allow managing the runtime deploy role (since this stack owns it)
-    cdkRole.addToPolicy(
-      new iam.PolicyStatement({
-        sid: 'ManageGitHubDeployRole',
-        effect: iam.Effect.ALLOW,
-        actions: [
-          'iam:GetRole',
-          'iam:UpdateAssumeRolePolicy',
-          'iam:PutRolePolicy',
-          'iam:DeleteRolePolicy',
-        ],
-        resources: [deployRole.roleArn],
+        actions: ['ssm:GetParameter'],
+        resources: [bootstrapVersionParamArn],
       })
     );
 
