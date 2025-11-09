@@ -111,6 +111,7 @@ export class StaticSiteStack extends cdk.Stack {
             }
           : { cloudFrontDefaultCertificate: true },
       },
+      tags: [{ key: 'test', value: 'true' }],
     });
 
     // --- Bucket policy: allow CloudFront to read (scoped to this distribution) ---
