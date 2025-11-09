@@ -195,25 +195,92 @@ export class StaticSiteStack extends cdk.Stack {
       })
     );
 
-    // ARN of THIS stack for CloudFormation permissions
+    // --- IAM role for CDK diff/deploy from GitHub Actions (OIDC) ---
+    const cdkRole = new iam.Role(this, 'GitHubCdkRole', {
+      roleName: `${projectName}-github-cdk`,
+      assumedBy, // same federated principal as deployRole
+      description: 'Role assumed by GitHub Actions to run cdk diff/deploy for this stack',
+    });
+
     const thisStackArn = cdk.Stack.of(this).formatArn({
       service: 'cloudformation',
       resource: 'stack',
       resourceName: `${cdk.Stack.of(this).stackName}/*`,
     });
 
-    deployRole.addToPolicy(
+    // Allow cdk diff/deploy against THIS stack
+    cdkRole.addToPolicy(
       new iam.PolicyStatement({
-        sid: 'CDKLookup',
+        sid: 'CloudFormationThisStack',
         effect: iam.Effect.ALLOW,
         actions: [
+          // read / plan
           'cloudformation:DescribeStacks',
+          'cloudformation:DescribeStackEvents',
           'cloudformation:DescribeStackResources',
           'cloudformation:GetTemplate',
           'cloudformation:GetTemplateSummary',
           'cloudformation:ListStackResources',
+          'cloudformation:DescribeChangeSet',
+          // deploy
+          'cloudformation:CreateChangeSet',
+          'cloudformation:ExecuteChangeSet',
+          'cloudformation:DeleteChangeSet',
+          'cloudformation:CreateStack',
+          'cloudformation:UpdateStack',
+          'cloudformation:DeleteStack',
         ],
         resources: [thisStackArn],
+      })
+    );
+
+    // Allow managing the bucket defined in this stack
+    cdkRole.addToPolicy(
+      new iam.PolicyStatement({
+        sid: 'ManageSiteBucket',
+        effect: iam.Effect.ALLOW,
+        actions: [
+          's3:CreateBucket',
+          's3:DeleteBucket',
+          's3:PutBucketPolicy',
+          's3:PutBucketVersioning',
+          's3:PutEncryptionConfiguration',
+          's3:GetBucketPolicy',
+          's3:GetBucketLocation',
+          's3:ListBucket',
+        ],
+        resources: [bucket.bucketArn],
+      })
+    );
+
+    // Allow managing the CloudFront distribution from this stack
+    cdkRole.addToPolicy(
+      new iam.PolicyStatement({
+        sid: 'ManageCloudFrontDistribution',
+        effect: iam.Effect.ALLOW,
+        actions: [
+          'cloudfront:GetDistribution',
+          'cloudfront:GetDistributionConfig',
+          'cloudfront:UpdateDistribution',
+          'cloudfront:CreateDistribution',
+          'cloudfront:DeleteDistribution',
+        ],
+        resources: [distributionArn],
+      })
+    );
+
+    // Allow managing the runtime deploy role (since this stack owns it)
+    cdkRole.addToPolicy(
+      new iam.PolicyStatement({
+        sid: 'ManageGitHubDeployRole',
+        effect: iam.Effect.ALLOW,
+        actions: [
+          'iam:GetRole',
+          'iam:UpdateAssumeRolePolicy',
+          'iam:PutRolePolicy',
+          'iam:DeleteRolePolicy',
+        ],
+        resources: [deployRole.roleArn],
       })
     );
 
@@ -240,7 +307,12 @@ export class StaticSiteStack extends cdk.Stack {
 
     new cdk.CfnOutput(this, 'GitHubDeployRoleArn', {
       value: deployRole.roleArn,
-      description: 'ARN to use as AWS_ROLE_TO_ASSUME_ARN in GitHub',
+      description: 'ARN to use for app deploy in GitHub',
+    });
+
+    new cdk.CfnOutput(this, 'GitHubCdkRoleArn', {
+      value: cdkRole.roleArn,
+      description: 'ARN to use for CDK diff/deploy from GitHub',
     });
   }
 }
