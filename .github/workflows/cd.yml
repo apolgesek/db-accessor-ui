@@ -65,6 +65,16 @@ jobs:
           role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Setup Node.js for CDK
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install infra dependencies
+        working-directory: infra
+        run: npm ci
+
       - name: Deploy CDK stack
         working-directory: infra
         run: |
