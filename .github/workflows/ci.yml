@@ -118,6 +118,7 @@ jobs:
         run: npx ng lint
 
   changes:
+    needs: validate-conventional-commits
     runs-on: ubuntu-latest
     outputs:
       app: ${{ steps.filter-app.outputs.app }}
