@@ -20,8 +20,57 @@ env:
   AWS_ROLE_TO_ASSUME_ARN: ${{ vars.AWS_ROLE_TO_ASSUME_ARN }} # from the CFN output (GitHubDeployRoleArn)
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      app: ${{ steps.filter-app.outputs.app }}
+      infra: ${{ steps.filter-infra.outputs.infra }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: filter-app
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            app:
+              - 'src/**'
+              - 'angular.json'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'tsconfig*.json'
+              - 'eslint.config.js'
+
+      - id: filter-infra
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            infra:
+              - 'infra/lib/**'
+
+  cdk-deploy:
+    needs: [changes]
+    if: github.event.pull_request.merged == true && needs.changes.outputs.infra == 'true'
+    runs-on: ubuntu-latest
+    environment: dev
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials for CDK deploy
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy CDK stack
+        run: |
+          npx cdk deploy --all --require-approval never --verbose
+
   build-deploy:
-    if: github.event.pull_request.merged == true
+    needs: [changes]
+    if: github.event.pull_request.merged == true && needs.changes.outputs.app == 'true'
     runs-on: ubuntu-latest
     environment: dev
 
