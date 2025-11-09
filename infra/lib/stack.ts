@@ -68,7 +68,7 @@ export class StaticSiteStack extends cdk.Stack {
     const oac = new cloudfront.CfnOriginAccessControl(this, 'OriginAccessControl', {
       originAccessControlConfig: {
         name: `${projectName}-oac`,
-        description: `OAC for ${projectName}`,
+        description: `1OAC for ${projectName}`,
         originAccessControlOriginType: 's3',
         signingBehavior: 'always',
         signingProtocol: 'sigv4',
