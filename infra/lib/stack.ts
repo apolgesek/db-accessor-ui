@@ -195,6 +195,28 @@ export class StaticSiteStack extends cdk.Stack {
       })
     );
 
+    // ARN of THIS stack for CloudFormation permissions
+    const thisStackArn = cdk.Stack.of(this).formatArn({
+      service: 'cloudformation',
+      resource: 'stack',
+      resourceName: `${cdk.Stack.of(this).stackName}/*`,
+    });
+
+    deployRole.addToPolicy(
+      new iam.PolicyStatement({
+        sid: 'CDKLookup',
+        effect: iam.Effect.ALLOW,
+        actions: [
+          'cloudformation:DescribeStacks',
+          'cloudformation:DescribeStackResources',
+          'cloudformation:GetTemplate',
+          'cloudformation:GetTemplateSummary',
+          'cloudformation:ListStackResources',
+        ],
+        resources: [thisStackArn],
+      })
+    );
+
     // --- Outputs (for wiring into GitHub Actions repo variables) ---
     new cdk.CfnOutput(this, 'SiteBucketNameOut', {
       value: bucket.bucketName,
