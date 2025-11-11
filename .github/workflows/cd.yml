@@ -87,6 +87,9 @@ jobs:
     runs-on: ubuntu-latest
     environment: dev
 
+    outputs:
+      dist_dir: ${{ steps.dist.outputs.dir }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -144,6 +147,13 @@ jobs:
           aws cloudfront create-invalidation \
             --distribution-id "${CLOUDFRONT_DISTRIBUTION_ID}" \
             --paths "/*"
+
+      - name: Upload build artifact for release
+        if: ${{ success() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: ${{ steps.dist.outputs.dir }}
 
   tag-release:
     needs: build-deploy
