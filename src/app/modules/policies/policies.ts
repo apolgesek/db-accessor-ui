@@ -21,7 +21,7 @@ type Policy = {
   partitionKey: string;
   policyId: string;
   creationDate: string;
-  expiresAt: string;
+  expiresAt: number;
   isExpiring: boolean;
 };
 
@@ -98,7 +98,7 @@ export class Policies implements OnInit {
         user: fragments[2],
         table: fragments[3],
         partitionKey: fragments[4],
-        isExpiring: new Date(p.expiresAt).getTime() - Date.now() < 60 * 60 * 1000, // less than 1 hour
+        isExpiring: p.expiresAt - Date.now() < 60 * 60 * 1000, // less than 1 hour
       };
     });
   }
