@@ -13,7 +13,7 @@ import { NzTableModule } from 'ng-zorro-antd/table';
 import { finalize, switchMap } from 'rxjs';
 import { PoliciesHttp, PolicyResponse } from './services/policies-http';
 import { ActivatedRoute } from '@angular/router';
-import { DatePipe } from '@angular/common';
+import { DatePipe, NgClass } from '@angular/common';
 
 type Policy = {
   user: string;
@@ -22,6 +22,7 @@ type Policy = {
   policyId: string;
   creationDate: string;
   expiresAt: string;
+  isExpiring: boolean;
 };
 
 @Component({
@@ -37,6 +38,7 @@ type Policy = {
     NzDividerModule,
     NzTableModule,
     DatePipe,
+    NgClass,
   ],
   templateUrl: './policies.html',
   styleUrl: './policies.scss',
@@ -96,6 +98,7 @@ export class Policies implements OnInit {
         user: fragments[2],
         table: fragments[3],
         partitionKey: fragments[4],
+        isExpiring: new Date(p.expiresAt).getTime() - Date.now() < 60 * 60 * 1000, // less than 1 hour
       };
     });
   }

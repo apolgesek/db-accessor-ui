@@ -62,7 +62,7 @@
   </thead>
   <tbody>
     @for (data of basicTable.data; track data) {
-    <tr>
+    <tr [ngClass]="{ expiring: data.isExpiring }">
       <td>{{ data.user }}</td>
       <td>{{ data.table }}</td>
       <td>{{ data.partitionKey }}</td>
