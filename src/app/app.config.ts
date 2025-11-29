@@ -34,9 +34,12 @@ export const appConfig: ApplicationConfig = {
       const http = inject(HttpClient);
       const configService = inject(ConfigService);
 
-      return http
-        .get<AppConfig>('config.json')
-        .pipe(tap((config: AppConfig) => (configService.apiUrl = config.apiUrl)));
+      return http.get<AppConfig>('config.json').pipe(
+        tap((config: AppConfig) => {
+          configService.apiUrl = config.apiUrl;
+          configService.version = config.version;
+        })
+      );
     }),
     {
       provide: BASE_URL,

@@ -260,3 +260,47 @@ jobs:
           prerelease: false
           files: |
             dist/**
+
+  update-version-file:
+    needs: tag-release
+    if: needs.tag-release.result == 'success' && needs.tag-release.outputs.new_tag != ''
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Update config.json in src/app
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p src/app
+
+          NEW_TAG="${{ needs.tag-release.outputs.new_tag }}"
+          CFG="src/app/config.json"
+
+          if [ -f "$CFG" ]; then
+            # Update or insert "version" field while preserving other keys
+            node -e "
+              const fs=require('fs'); const p='$CFG';
+              const data=JSON.parse(fs.readFileSync(p,'utf8'));
+              data.version='${NEW_TAG}';
+              fs.writeFileSync(p, JSON.stringify(data, null, 2) + '\n');
+            "
+          else
+            # Create a minimal config with version
+            printf '{\n  "version": "%s"\n}\n' "${NEW_TAG}" > "$CFG"
+          fi
+
+          git add "$CFG"
+          git config user.name  "github-actions"
+          git config user.email "<>"
+          # Only commit if there are changes
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: update src/app/config.json to ${NEW_TAG}"
+            # Push back to default branch (main)
+            git push origin main
+          else
+            echo "No changes to commit for $CFG"
+          fi
