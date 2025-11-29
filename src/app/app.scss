@@ -80,3 +80,11 @@ nz-content {
   height: 100%;
   overflow: auto;
 }
+
+.version {
+  position: absolute;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #888;
+}
