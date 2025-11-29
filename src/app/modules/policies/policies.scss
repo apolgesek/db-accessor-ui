@@ -6,6 +6,11 @@
   margin-bottom: 1rem;
 }
 
-.expiring {
-  background-color: #fff3cd; /* Light yellow background */
+tr.expiring {
+  background-color: #fff3cd;
+  &:hover {
+    td {
+      background-color: #ffe8a1;
+    }
+  }
 }

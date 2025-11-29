@@ -7,7 +7,7 @@ export type PolicyResponse = {
   policyName: string;
   policyId: string;
   creationDate: string;
-  expiresAt: string;
+  expiresAt: number;
 };
 
 @Injectable({
