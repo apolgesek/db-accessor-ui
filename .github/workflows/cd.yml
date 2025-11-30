@@ -53,7 +53,7 @@ jobs:
 
   cdk-deploy:
     needs: [changes]
-    if: github.event.pull_request.merged == true && needs.changes.outputs.infra == 'true'
+    if: needs.changes.outputs.infra == 'true'
     runs-on: ubuntu-latest
     environment: dev
 
@@ -81,83 +81,9 @@ jobs:
         run: |
           npx cdk deploy --all --require-approval never --verbose
 
-  build-deploy:
-    needs: [changes]
-    if: github.event.pull_request.merged == true && needs.changes.outputs.app == 'true'
-    runs-on: ubuntu-latest
-    environment: dev
-
-    outputs:
-      dist_dir: ${{ steps.dist.outputs.dir }}
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build Angular
-        run: npx ng build --configuration production
-
-      - name: Resolve dist path
-        id: dist
-        shell: bash
-        run: |
-          # heuristics to find the actual dist folder:
-          if [ -d "dist" ]; then
-            SUB=$(ls -1 dist | head -n 1 || true)
-            if [ -n "$SUB" ] && [ -d "dist/$SUB/browser" ]; then
-              echo "dir=dist/$SUB/browser" >> "$GITHUB_OUTPUT"
-            elif [ -n "$SUB" ] && [ -d "dist/$SUB" ]; then
-              echo "dir=dist/$SUB" >> "$GITHUB_OUTPUT"
-            else
-              echo "dir=dist" >> "$GITHUB_OUTPUT"
-            fi
-          else
-            echo "dist/ not found"; exit 1
-          fi
-          echo "Using dist dir: $(cat $GITHUB_OUTPUT)"
-
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ env.APP_DEPLOY_ROLE_TO_ASSUME_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Upload static assets (immutable)
-        run: |
-          aws s3 sync "${{ steps.dist.outputs.dir }}/" "s3://${S3_BUCKET}/" \
-            --delete \
-            --exclude "index.html" \
-            --cache-control "public, max-age=31536000, immutable"
-
-      - name: Upload index.html (no-cache)
-        run: |
-          aws s3 cp "${{ steps.dist.outputs.dir }}/index.html" "s3://${S3_BUCKET}/index.html" \
-            --cache-control "public, max-age=0, must-revalidate" \
-            --content-type "text/html; charset=utf-8"
-
-      - name: Invalidate CloudFront
-        run: |
-          aws cloudfront create-invalidation \
-            --distribution-id "${CLOUDFRONT_DISTRIBUTION_ID}" \
-            --paths "/*"
-
-      - name: Upload build artifact for release
-        if: ${{ success() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: ${{ steps.dist.outputs.dir }}
-
   tag-release:
-    needs: build-deploy
-    if: needs.build-deploy.result == 'success' && github.event.pull_request.merged == true
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
     runs-on: ubuntu-latest
     outputs:
       new_tag: ${{ steps.tag.outputs.new_tag }}
@@ -238,9 +164,127 @@ jobs:
           echo "- New tag: ${{ steps.tag.outputs.new_tag }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- Environment: dev" >> "$GITHUB_STEP_SUMMARY"
 
+  update-version-file:
+    needs: tag-release
+    if: needs.tag-release.outputs.new_tag != ''
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
+
+      - name: Update config.json in src/app
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p src/app
+
+          NEW_TAG="${{ needs.tag-release.outputs.new_tag }}"
+          CFG="src/app/config.json"
+
+          if [ -f "$CFG" ]; then
+            # Update or insert "version" field while preserving other keys
+            node -e "
+              const fs=require('fs'); const p='$CFG';
+              const data=JSON.parse(fs.readFileSync(p,'utf8'));
+              data.version='${NEW_TAG}';
+              fs.writeFileSync(p, JSON.stringify(data, null, 2) + '\n');
+            "
+          else
+            # Create a minimal config with version
+            printf '{\n  "version": "%s"\n}\n' "${NEW_TAG}" > "$CFG"
+          fi
+
+          git add "$CFG"
+          git config user.name  "github-actions"
+          git config user.email "<>"
+          # Only commit if there are changes
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: update src/app/config.json to ${NEW_TAG}"
+            # Push back to default branch (main)
+            git push origin main
+          else
+            echo "No changes to commit for $CFG"
+          fi
+
+  build-deploy:
+    needs: [tag-release, update-version-file]
+    runs-on: ubuntu-latest
+    environment: dev
+
+    outputs:
+      dist_dir: ${{ steps.dist.outputs.dir }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Angular
+        run: npx ng build --configuration production
+
+      - name: Resolve dist path
+        id: dist
+        shell: bash
+        run: |
+          # heuristics to find the actual dist folder:
+          if [ -d "dist" ]; then
+            SUB=$(ls -1 dist | head -n 1 || true)
+            if [ -n "$SUB" ] && [ -d "dist/$SUB/browser" ]; then
+              echo "dir=dist/$SUB/browser" >> "$GITHUB_OUTPUT"
+            elif [ -n "$SUB" ] && [ -d "dist/$SUB" ]; then
+              echo "dir=dist/$SUB" >> "$GITHUB_OUTPUT"
+            else
+              echo "dir=dist" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "dist/ not found"; exit 1
+          fi
+          echo "Using dist dir: $(cat $GITHUB_OUTPUT)"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.APP_DEPLOY_ROLE_TO_ASSUME_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Upload static assets (immutable)
+        run: |
+          aws s3 sync "${{ steps.dist.outputs.dir }}/" "s3://${S3_BUCKET}/" \
+            --delete \
+            --exclude "index.html" \
+            --cache-control "public, max-age=31536000, immutable"
+
+      - name: Upload index.html (no-cache)
+        run: |
+          aws s3 cp "${{ steps.dist.outputs.dir }}/index.html" "s3://${S3_BUCKET}/index.html" \
+            --cache-control "public, max-age=0, must-revalidate" \
+            --content-type "text/html; charset=utf-8"
+
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${CLOUDFRONT_DISTRIBUTION_ID}" \
+            --paths "/*"
+
+      - name: Upload build artifact for release
+        if: ${{ success() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: ${{ steps.dist.outputs.dir }}
+
   github-release:
     needs: [build-deploy, tag-release]
-    if: needs.build-deploy.result == 'success' && needs.tag-release.result == 'success' && needs.tag-release.outputs.new_tag != ''
+    if: needs.tag-release.outputs.new_tag != ''
     runs-on: ubuntu-latest
 
     steps:
