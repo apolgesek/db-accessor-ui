@@ -310,11 +310,15 @@ jobs:
     needs: [tag-release]
     if: needs.tag-release.outputs.new_tag != ''
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
         with:
-          fetch-depth: 0
-          ref: ${{ needs.tag-release.outputs.new_tag }}
+          name: dist
+          path: dist
+
+      - run: zip -r "dist-${{ needs.tag-release.outputs.new_tag }}.zip" dist
 
       - name: Create GitHub Release with build artifacts
         uses: softprops/action-gh-release@v2
@@ -325,4 +329,4 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            dist/**
+            dist-${{ needs.tag-release.outputs.new_tag }}.zip
