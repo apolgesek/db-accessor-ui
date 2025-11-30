@@ -75,17 +75,6 @@ export class StaticSiteStack extends cdk.Stack {
       },
     });
 
-    // Create a Cache Policy that disables caching (TTL = 0)
-    const noCachePolicy = new cloudfront.CachePolicy(this, 'NoCachePolicy', {
-      cachePolicyName: `${projectName}-no-cache`,
-      defaultTtl: cdk.Duration.seconds(0),
-      maxTtl: cdk.Duration.seconds(0),
-      minTtl: cdk.Duration.seconds(0),
-      headerBehavior: cloudfront.CacheHeaderBehavior.none(),
-      cookieBehavior: cloudfront.CacheCookieBehavior.none(),
-      queryStringBehavior: cloudfront.CacheQueryStringBehavior.none(),
-    });
-
     // --- CloudFront Distribution (L1 to wire OAC explicitly) ---
     const distribution = new cloudfront.CfnDistribution(this, 'CloudFrontDistribution', {
       distributionConfig: {
@@ -110,16 +99,6 @@ export class StaticSiteStack extends cdk.Stack {
           // AWS Managed: CachingOptimized
           cachePolicyId: '658327ea-f89d-4fab-a63d-7e88639e58f6',
         },
-        cacheBehaviors: [
-          {
-            pathPattern: 'config.json',
-            targetOriginId: 's3-site',
-            viewerProtocolPolicy: 'redirect-to-https',
-            allowedMethods: ['GET', 'HEAD', 'OPTIONS'],
-            compress: true,
-            cachePolicyId: noCachePolicy.cachePolicyId,
-          },
-        ],
         customErrorResponses: [
           { errorCode: 403, responseCode: 200, responsePagePath: '/index.html' },
           { errorCode: 404, responseCode: 200, responsePagePath: '/index.html' },
