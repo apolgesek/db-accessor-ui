@@ -285,6 +285,7 @@ jobs:
           aws s3 sync "${{ steps.dist.outputs.dir }}/" "s3://${S3_BUCKET}/" \
             --delete \
             --exclude "index.html" \
+            --exclude "config.json" \
             --cache-control "public, max-age=31536000, immutable"
 
       - name: Upload index.html (no-cache)
@@ -292,6 +293,12 @@ jobs:
           aws s3 cp "${{ steps.dist.outputs.dir }}/index.html" "s3://${S3_BUCKET}/index.html" \
             --cache-control "public, max-age=0, must-revalidate" \
             --content-type "text/html; charset=utf-8"
+
+      - name: Upload config.json (no-cache)
+        run: |
+          aws s3 cp "${{ steps.dist.outputs.dir }}/config.json" "s3://${S3_BUCKET}/config.json" \
+            --cache-control "public, max-age=0, must-revalidate" \
+            --content-type "application/json; charset=utf-8"
 
       - name: Invalidate CloudFront
         run: |
@@ -307,7 +314,7 @@ jobs:
           path: ${{ steps.dist.outputs.dir }}
 
   github-release:
-    needs: [tag-release]
+    needs: [tag-release, build-deploy]
     if: needs.tag-release.outputs.new_tag != ''
     runs-on: ubuntu-latest
     permissions:
