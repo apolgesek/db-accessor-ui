@@ -181,7 +181,7 @@ jobs:
         run: npx ng build --configuration production
 
   lint:
-    needs: [build-angular]
+    needs: [validate-conventional-commits, changes]
     runs-on: ubuntu-latest
 
     steps:
