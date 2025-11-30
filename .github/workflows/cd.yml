@@ -192,6 +192,7 @@ jobs:
           fi
 
       - name: Expose commit SHA
+        id: sha
         shell: bash
         run: echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
@@ -207,6 +208,7 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
+          ref: main
 
       - name: Create + push tag on version commit
         shell: bash
