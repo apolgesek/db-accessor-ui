@@ -84,8 +84,6 @@ export class StaticSiteStack extends cdk.Stack {
       headerBehavior: cloudfront.CacheHeaderBehavior.none(),
       cookieBehavior: cloudfront.CacheCookieBehavior.none(),
       queryStringBehavior: cloudfront.CacheQueryStringBehavior.none(),
-      enableAcceptEncodingGzip: true,
-      enableAcceptEncodingBrotli: true,
     });
 
     // --- CloudFront Distribution (L1 to wire OAC explicitly) ---
@@ -114,7 +112,7 @@ export class StaticSiteStack extends cdk.Stack {
         },
         cacheBehaviors: [
           {
-            pathPattern: '/config.json',
+            pathPattern: 'config.json',
             targetOriginId: 's3-site',
             viewerProtocolPolicy: 'redirect-to-https',
             allowedMethods: ['GET', 'HEAD', 'OPTIONS'],
