@@ -15,3 +15,5 @@ export class App {
   private readonly configService = inject(ConfigService);
   appVersion = this.configService.version;
 }
+
+// refresh
