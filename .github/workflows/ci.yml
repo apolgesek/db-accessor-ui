@@ -46,22 +46,54 @@ jobs:
               pull_number: pr.number,
             });
 
-            let bump = 'patch'; // default
-
+            // Start with no bump; escalate based on commit types.
+            // Rules:
+            //  - major: BREAKING CHANGE or type!:
+            //  - minor: feat
+            //  - patch: fix
+            //  - chore/refactor alone => no bump (skip labeling)
+            let bump = 'none';
             for (const { commit } of commits) {
               const msg = commit.message;
               const firstLine = msg.split('\n')[0];
-
-              // Major: BREAKING CHANGE or "type!:"
+              // Major
               if (/BREAKING CHANGE/i.test(msg) || /^(\w+)(\(.+\))?!:/.test(firstLine)) {
                 bump = 'major';
                 break;
               }
-
-              // Minor: any feat
+              // Minor
               if (bump !== 'major' && /^feat(\(.+\))?:/.test(firstLine)) {
                 bump = 'minor';
+                continue;
               }
+              // Patch
+              if (bump !== 'major' && bump !== 'minor' && /^fix(\(.+\))?:/.test(firstLine)) {
+                bump = 'patch';
+                continue;
+              }
+              // chore/refactor do not change bump if already none.
+            }
+
+            if (bump === 'none') {
+              core.info('All commits are chore/refactor (or no semantic changes). Skipping semver label.');
+              // Remove any existing semver labels if present
+              const semverLabelsAll = ['semver:major', 'semver:minor', 'semver:patch'];
+              const existing = pr.labels.map(l => l.name);
+              for (const l of semverLabelsAll) {
+                if (existing.includes(l)) {
+                  try {
+                    await github.rest.issues.removeLabel({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: pr.number,
+                      name: l,
+                    });
+                  } catch (e) {
+                    core.info(`Could not remove label ${l}: ${e.message}`);
+                  }
+                }
+              }
+              return;
             }
 
             const labelToAdd = `semver:${bump}`;
