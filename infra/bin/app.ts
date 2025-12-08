@@ -4,7 +4,6 @@ import { StaticSiteStack } from '../lib/stack';
 
 const app = new cdk.App();
 new StaticSiteStack(app, 'StaticSiteStack', {
-  // Synthesize with your preferred env; these default env vars are handy in CI
   env: {
     account: process.env.CDK_DEPLOY_ACCOUNT || process.env.CDK_DEFAULT_ACCOUNT,
     region: process.env.CDK_DEPLOY_REGION || process.env.CDK_DEFAULT_REGION,
