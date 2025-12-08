@@ -46,19 +46,21 @@ export interface StaticSiteStackProps extends cdk.StackProps {
    * GitHub repository name.
    */
   githubRepo: string;
+  stage: 'dev' | 'prod';
 }
 
 export class StaticSiteStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: StaticSiteStackProps) {
     super(scope, id, props);
-
-    const projectName = props.projectName ?? 'angular-cdn-prod';
+    const stack = cdk.Stack.of(this);
+    const projectName = props.projectName + '-' + props.stage;
     const priceClass = props.priceClass ?? 'PriceClass_100';
     const useCustomDomain = !!props.acmCertificateArn && !!props.alternateDomainName;
+    const ghOidcProviderArn = `arn:aws:iam::${stack.account}:oidc-provider/token.actions.githubusercontent.com`;
 
     // --- S3 bucket (private) ---
     const bucket = new s3.Bucket(this, 'SiteBucket', {
-      bucketName: props.siteBucketName,
+      bucketName: props.siteBucketName + '-' + props.stage,
       versioned: true,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       enforceSSL: true,
@@ -144,13 +146,12 @@ export class StaticSiteStack extends cdk.Stack {
     const oidcProvider = iam.OpenIdConnectProvider.fromOpenIdConnectProviderArn(
       this,
       'GitHubOidcProvider',
-      props.existingGitHubOidcProviderArn!
+      ghOidcProviderArn
     );
 
     // --- Federated principal for GitHub Actions ---
     const assumedBy = new iam.FederatedPrincipal(
-      (oidcProvider as iam.OpenIdConnectProvider).openIdConnectProviderArn ??
-        props.existingGitHubOidcProviderArn!,
+      (oidcProvider as iam.OpenIdConnectProvider).openIdConnectProviderArn,
       {
         StringEquals: {
           'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com',
@@ -204,8 +205,6 @@ export class StaticSiteStack extends cdk.Stack {
       assumedBy,
       description: 'Role assumed by GitHub Actions to run cdk diff/deploy for this stack',
     });
-
-    const stack = cdk.Stack.of(this);
 
     // --- CDK bootstrap integration (assume bootstrap roles + read bootstrap version) ---
     const qualifier = 'hnb659fds'; // default CDK bootstrap qualifier
