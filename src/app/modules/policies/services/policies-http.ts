@@ -17,11 +17,19 @@ export class PoliciesHttp {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(BASE_URL);
 
-  addPolicy(request: AddPolicyRequest) {
+  addIAMPolicy(request: AddPolicyRequest) {
     return this.http.post(`${this.baseUrl}/iam/access`, request);
   }
 
-  getPolicies() {
+  getIAMPolicies() {
     return this.http.get<PolicyResponse[]>(`${this.baseUrl}/iam/access`);
+  }
+
+  addSSOPolicy(request: AddPolicyRequest) {
+    return this.http.post(`${this.baseUrl}/sso/access`, request);
+  }
+
+  getSSOPolicies() {
+    return this.http.get<PolicyResponse[]>(`${this.baseUrl}/sso/access`);
   }
 }
