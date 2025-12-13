@@ -14,6 +14,7 @@ import { finalize, switchMap } from 'rxjs';
 import { PoliciesHttp, PolicyResponse } from './services/policies-http';
 import { ActivatedRoute } from '@angular/router';
 import { DatePipe, NgClass } from '@angular/common';
+import { AddPolicyStrategy } from './add-policy-strategy';
 
 type Policy = {
   user: string;
@@ -51,6 +52,7 @@ export class Policies implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly messageService = inject(NzMessageService);
   private readonly route = inject(ActivatedRoute);
+  private readonly addPolicyStrategy = inject(AddPolicyStrategy);
 
   form = this.fb.group({
     userName: this.fb.control<string | null>(null, [Validators.required]),
@@ -76,8 +78,8 @@ export class Policies implements OnInit {
     }
 
     this.isLoading = true;
-    this.policiesHttp
-      .addIAMPolicy(this.form.getRawValue())
+    this.addPolicyStrategy
+      .addPolicy(this.form.getRawValue())
       .pipe(
         switchMap(() => this.policiesHttp.getIAMPolicies()),
         finalize(() => (this.isLoading = false)),
