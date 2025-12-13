@@ -10,7 +10,7 @@ export const POLICIES_ROUTES: Routes = [
     resolve: {
       list: () => {
         const policiesHttp = inject(PoliciesHttp);
-        return policiesHttp.getPolicies();
+        return policiesHttp.getSSOPolicies();
       },
     },
   },

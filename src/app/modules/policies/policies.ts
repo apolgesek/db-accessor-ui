@@ -77,9 +77,9 @@ export class Policies implements OnInit {
 
     this.isLoading = true;
     this.policiesHttp
-      .addPolicy(this.form.getRawValue())
+      .addIAMPolicy(this.form.getRawValue())
       .pipe(
-        switchMap(() => this.policiesHttp.getPolicies()),
+        switchMap(() => this.policiesHttp.getIAMPolicies()),
         finalize(() => (this.isLoading = false)),
         takeUntilDestroyed(this.destroyRef)
       )
