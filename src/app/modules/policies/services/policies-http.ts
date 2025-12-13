@@ -18,10 +18,10 @@ export class PoliciesHttp {
   private readonly baseUrl = inject(BASE_URL);
 
   addPolicy(request: AddPolicyRequest) {
-    return this.http.post(`${this.baseUrl}/access`, request);
+    return this.http.post(`${this.baseUrl}/iam/access`, request);
   }
 
   getPolicies() {
-    return this.http.get<PolicyResponse[]>(`${this.baseUrl}/access`);
+    return this.http.get<PolicyResponse[]>(`${this.baseUrl}/iam/access`);
   }
 }
