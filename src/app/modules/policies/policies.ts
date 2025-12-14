@@ -52,6 +52,7 @@ export class Policies implements OnInit {
   private readonly messageService = inject(NzMessageService);
   private readonly route = inject(ActivatedRoute);
   private readonly policyStrategy = inject(PolicyStrategy);
+  type = this.policyStrategy.type.toUpperCase();
 
   form = this.fb.group({
     userName: this.fb.control<string | null>(null, [Validators.required]),

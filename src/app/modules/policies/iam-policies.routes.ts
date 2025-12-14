@@ -8,6 +8,7 @@ import { PolicyStrategy } from './policy-strategy';
 @Injectable()
 export class IAMPolicyStrategy extends PolicyStrategy {
   private readonly policiesHttp = inject(PoliciesHttp);
+  type: 'sso' | 'iam' = 'iam';
 
   addPolicy(request: AddPolicyRequest) {
     return this.policiesHttp.addIAMPolicy(request);
