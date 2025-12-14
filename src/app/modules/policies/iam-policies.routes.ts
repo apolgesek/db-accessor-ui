@@ -3,13 +3,18 @@ import { Policies } from './policies';
 import { PoliciesHttp } from './services/policies-http';
 import { inject, Injectable } from '@angular/core';
 import { AddPolicyRequest } from './models';
-import { AddPolicyStrategy } from './add-policy-strategy';
+import { PolicyStrategy } from './policy-strategy';
 
 @Injectable()
-export class AddIAMPolicyStrategy extends AddPolicyStrategy {
+export class IAMPolicyStrategy extends PolicyStrategy {
   private readonly policiesHttp = inject(PoliciesHttp);
+
   addPolicy(request: AddPolicyRequest) {
     return this.policiesHttp.addIAMPolicy(request);
+  }
+
+  getPolicies() {
+    return this.policiesHttp.getIAMPolicies();
   }
 }
 
@@ -17,7 +22,7 @@ export const POLICIES_ROUTES: Routes = [
   {
     path: '',
     component: Policies,
-    providers: [{ provide: AddPolicyStrategy, useClass: AddIAMPolicyStrategy }],
+    providers: [{ provide: PolicyStrategy, useClass: IAMPolicyStrategy }],
     resolve: {
       list: () => {
         const policiesHttp = inject(PoliciesHttp);

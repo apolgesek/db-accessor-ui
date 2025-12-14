@@ -11,10 +11,10 @@ import { NzMessageService } from 'ng-zorro-antd/message';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { NzTableModule } from 'ng-zorro-antd/table';
 import { finalize, switchMap } from 'rxjs';
-import { PoliciesHttp, PolicyResponse } from './services/policies-http';
+import { PolicyResponse } from './services/policies-http';
 import { ActivatedRoute } from '@angular/router';
 import { DatePipe, NgClass } from '@angular/common';
-import { AddPolicyStrategy } from './add-policy-strategy';
+import { PolicyStrategy } from './policy-strategy';
 
 type Policy = {
   userName: string;
@@ -48,11 +48,10 @@ export class Policies implements OnInit {
   isLoading = false;
   list: Policy[] = [];
   private readonly fb = inject(FormBuilder);
-  private readonly policiesHttp = inject(PoliciesHttp);
   private readonly destroyRef = inject(DestroyRef);
   private readonly messageService = inject(NzMessageService);
   private readonly route = inject(ActivatedRoute);
-  private readonly addPolicyStrategy = inject(AddPolicyStrategy);
+  private readonly policyStrategy = inject(PolicyStrategy);
 
   form = this.fb.group({
     userName: this.fb.control<string | null>(null, [Validators.required]),
@@ -78,10 +77,10 @@ export class Policies implements OnInit {
     }
 
     this.isLoading = true;
-    this.addPolicyStrategy
+    this.policyStrategy
       .addPolicy(this.form.getRawValue())
       .pipe(
-        switchMap(() => this.policiesHttp.getIAMPolicies()),
+        switchMap(() => this.policyStrategy.getPolicies()),
         finalize(() => (this.isLoading = false)),
         takeUntilDestroyed(this.destroyRef)
       )
