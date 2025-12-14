@@ -97,8 +97,8 @@ export class Policies implements OnInit {
       const fragments = p.policyName.split('_');
       return {
         ...p,
-        table: fragments[3],
-        partitionKey: fragments[4],
+        table: fragments[2],
+        partitionKey: fragments[3],
         isExpiring: p.expiresAt - Date.now() < 60 * 60 * 1000, // less than 1 hour
       };
     });
