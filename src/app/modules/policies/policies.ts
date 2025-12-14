@@ -17,10 +17,10 @@ import { DatePipe, NgClass } from '@angular/common';
 import { AddPolicyStrategy } from './add-policy-strategy';
 
 type Policy = {
-  user: string;
+  userName: string;
   table: string;
   partitionKey: string;
-  policyId: string;
+  arn: string;
   creationDate: string;
   expiresAt: number;
   isExpiring: boolean;
@@ -97,7 +97,6 @@ export class Policies implements OnInit {
       const fragments = p.policyName.split('_');
       return {
         ...p,
-        user: fragments[2],
         table: fragments[3],
         partitionKey: fragments[4],
         isExpiring: p.expiresAt - Date.now() < 60 * 60 * 1000, // less than 1 hour

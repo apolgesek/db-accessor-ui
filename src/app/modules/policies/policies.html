@@ -63,10 +63,10 @@
   <tbody>
     @for (data of basicTable.data; track data) {
     <tr [ngClass]="{ expiring: data.isExpiring }">
-      <td>{{ data.user }}</td>
+      <td>{{ data.userName }}</td>
       <td>{{ data.table }}</td>
       <td>{{ data.partitionKey }}</td>
-      <td>{{ data.policyId }}</td>
+      <td>{{ data.arn }}</td>
       <td>{{ data.creationDate | date : 'yyyy-MM-dd HH:mm:ss' }}</td>
       <td>{{ data.expiresAt | date : 'yyyy-MM-dd HH:mm:ss' }}</td>
     </tr>

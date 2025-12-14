@@ -6,7 +6,8 @@ import { Observable } from 'rxjs';
 
 export type PolicyResponse = {
   policyName: string;
-  policyId: string;
+  userName: string;
+  arn: string;
   creationDate: string;
   expiresAt: number;
 };
