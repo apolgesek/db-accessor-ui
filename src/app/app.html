@@ -34,3 +34,9 @@
     </nz-content>
   </nz-layout>
 </nz-layout>
+
+@if (isLoading()) {
+<div class="loading-overlay">
+  <nz-spin nzSimple nzSize="large"></nz-spin>
+</div>
+}
