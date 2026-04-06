@@ -1,0 +1,127 @@
+<h3 nz-typography>My requests</h3>
+<nz-table #basicTable [nzData]="requests.items" nzTableLayout="fixed">
+  <thead>
+    <tr>
+      <th nzWidth="80px">
+        <nz-icon
+          nzType="plus"
+          class="ant-table-row-expand-icon"
+          style="margin-right: 0.5rem"
+          (click)="expandAll()"
+        />
+        <nz-icon nzType="minus" class="ant-table-row-expand-icon" (click)="collapseAll()" />
+      </th>
+      <th>Table</th>
+      <th>Target PK</th>
+      <th>Target SK</th>
+      <th width="100px">Duration</th>
+      <th width="80px">Status</th>
+      <th width="150px">Created at</th>
+      <th width="150px">Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (data of basicTable.data; track data) {
+      <tr>
+        <td
+          [nzExpand]="expandSet.has(data.SK)"
+          (nzExpandChange)="onExpandChange(data.SK, $event)"
+        ></td>
+
+        <td nzEllipsis>{{ data.table }}</td>
+        <td nzEllipsis>{{ data.targetPK }}</td>
+        <td nzEllipsis>{{ data.targetSK }}</td>
+        <td width="100px">
+          <div class="my-requests__duration-progress-row">
+            <div
+              class="my-requests__request-progress"
+              [class.my-requests__request-progress--neutral]="!data.adminApprovedAt"
+              [class.my-requests__request-progress--expired]="data.isExpired"
+              [class.my-requests__request-progress--warning]="
+                !data.isExpired &&
+                data.progressPercent &&
+                data.progressPercent >= 50 &&
+                data.progressPercent < 80
+              "
+              [class.my-requests__request-progress--critical]="
+                !data.isExpired && data.progressPercent && data.progressPercent >= 80
+              "
+            >
+              <span class="my-requests__request-progress-text">{{ data.progressLabel }}</span>
+            </div>
+          </div>
+        </td>
+        <td width="80px" class="my-requests__status-cell">
+          @if (data.status === 'APPROVED') {
+            <nz-icon
+              nzType="check-circle"
+              nzTheme="fill"
+              class="my-requests__status-icon my-requests__status-icon--approved"
+            />
+          } @else if (data.status === 'REJECTED') {
+            <nz-icon
+              nzType="close-circle"
+              nzTheme="fill"
+              class="my-requests__status-icon my-requests__status-icon--rejected"
+            />
+          } @else {
+            <nz-icon
+              nzType="clock-circle"
+              nzTheme="fill"
+              class="my-requests__status-icon my-requests__status-icon--pending"
+            />
+          }
+        </td>
+        <td width="150px">{{ data.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+        <td width="150px">
+          @if (data.status === 'APPROVED' && data.isAvailable) {
+            <button
+              widt
+              nz-button
+              nzType="primary"
+              nzBlock
+              [routerLink]="['../record/', data.urlId]"
+            >
+              <nz-icon nzType="file-search" />
+              View
+            </button>
+          } @else if (data.status === 'APPROVED' && !data.isAvailable) {
+            <button nz-button nzType="default" nzBlock [routerLink]="['../record/', data.urlId]">
+              <nz-icon nzType="sync" />
+              Renew
+            </button>
+          }
+        </td>
+      </tr>
+      <tr [nzExpand]="expandSet.has(data.SK)">
+        <div nz-row>
+          <div nz-col nzSpan="12"><strong>Account:</strong> {{ data.accountId }}</div>
+          <div nz-col nzSpan="12"><strong>Region:</strong> {{ data.region }}</div>
+        </div>
+        <div nz-row>
+          <div nz-col nzSpan="12"><strong>Jira issue:</strong> {{ data.issueKey }}</div>
+          <div nz-col nzSpan="12"><strong>Reason:</strong> {{ data.reason }}</div>
+        </div>
+        @if (data.status === 'APPROVED' || data.status === 'REJECTED') {
+          <div nz-row style="margin-top: 1rem; background-color: #fff4db; padding: 1rem">
+            @if (data.adminApprovedAt) {
+              <div nz-row>
+                <div nz-col nzSpan="24">
+                  <strong>Approved at:</strong>
+                  {{ data.adminApprovedAt | date: 'dd/MM/yyyy HH:mm' }}, by
+                  <span class="my-requests__admin">{{ data.adminApprovedBy }}</span>
+                </div>
+              </div>
+            }
+            @if (data.comment) {
+              <div nz-col nzSpan="24"><strong>Comment:</strong> {{ data.comment }}</div>
+            }
+          </div>
+          <app-unredact-requests
+            [unredactRequests]="data.unredactRequests ?? []"
+          ></app-unredact-requests>
+        }
+      </tr>
+    }
+  </tbody>
+</nz-table>

@@ -5,48 +5,28 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
 
 export interface StaticSiteStackProps extends cdk.StackProps {
-  /**
-   * Globally unique bucket name (no uppercase/underscores).
-   */
   siteBucketName: string;
-
-  /**
-   * Project name used for resource naming.
-   * @default 'angular-cdn-prod'
-   */
   projectName?: string;
-
-  /**
-   * Price class for CloudFront.
-   * @default 'PriceClass_100'
-   */
   priceClass?: 'PriceClass_100' | 'PriceClass_200' | 'PriceClass_All';
 
   /**
    * ACM certificate ARN in us-east-1 for custom domain (optional).
    */
   acmCertificateArn?: string;
-
   /**
    * Alternate domain name (e.g. app.example.com). Optional.
    */
   alternateDomainName?: string;
-
-  /**
-   * Existing OIDC provider ARN if not creating a new one.
-   */
   existingGitHubOidcProviderArn?: string;
-
-  /**
-   * GitHub organization (owner).
-   */
   githubOrg: string;
-
-  /**
-   * GitHub repository name.
-   */
   githubRepo: string;
   stage: 'dev' | 'prod';
+
+  /**
+   * Only this viewer IP is allowed to access CloudFront.
+   * Use a single IPv4/IPv6 literal (no CIDR).
+   */
+  allowedIp: string;
 }
 
 export class StaticSiteStack extends cdk.Stack {
@@ -77,6 +57,30 @@ export class StaticSiteStack extends cdk.Stack {
       },
     });
 
+    const ipAllowFunction = new cloudfront.CfnFunction(this, 'IpAllowFunction', {
+      name: `${projectName}-allow-ip`,
+      autoPublish: true,
+      functionConfig: {
+        comment: 'Allow only one white-listed IP',
+        runtime: 'cloudfront-js-2.0',
+      },
+      functionCode: `function handler(event) {
+        var request = event.request;
+        var clientIp = request.clientIp;
+
+        if (clientIp !== ${JSON.stringify(props.allowedIp)}) {
+          return {
+            statusCode: 403,
+            statusDescription: 'Forbidden',
+            headers: {'content-type': { value: 'text/plain; charset=utf-8' }},
+            body: 'Forbidden'
+          };
+        }
+
+        return request;
+      }`,
+    });
+
     // --- CloudFront Distribution (L1 to wire OAC explicitly) ---
     const distribution = new cloudfront.CfnDistribution(this, 'CloudFrontDistribution', {
       distributionConfig: {
@@ -98,6 +102,12 @@ export class StaticSiteStack extends cdk.Stack {
           viewerProtocolPolicy: 'redirect-to-https',
           allowedMethods: ['GET', 'HEAD', 'OPTIONS'],
           compress: true,
+          functionAssociations: [
+            {
+              eventType: 'viewer-request',
+              functionArn: ipAllowFunction.attrFunctionArn,
+            },
+          ],
           // AWS Managed: CachingOptimized
           cachePolicyId: '658327ea-f89d-4fab-a63d-7e88639e58f6',
         },
@@ -124,7 +134,7 @@ export class StaticSiteStack extends cdk.Stack {
         resource: 'distribution',
         resourceName: distribution.attrId,
       },
-      this
+      this,
     );
 
     bucket.addToResourcePolicy(
@@ -139,14 +149,14 @@ export class StaticSiteStack extends cdk.Stack {
             'AWS:SourceArn': distributionArn,
           },
         },
-      })
+      }),
     );
 
     // --- OIDC provider (imported) ---
     const oidcProvider = iam.OpenIdConnectProvider.fromOpenIdConnectProviderArn(
       this,
       'GitHubOidcProvider',
-      ghOidcProviderArn
+      ghOidcProviderArn,
     );
 
     // --- Federated principal for GitHub Actions ---
@@ -160,7 +170,7 @@ export class StaticSiteStack extends cdk.Stack {
           'token.actions.githubusercontent.com:sub': `repo:${props.githubOrg}/${props.githubRepo}:*`,
         },
       },
-      'sts:AssumeRoleWithWebIdentity'
+      'sts:AssumeRoleWithWebIdentity',
     );
 
     // --- Runtime deploy role: S3 upload + CloudFront invalidation only ---
@@ -186,7 +196,7 @@ export class StaticSiteStack extends cdk.Stack {
           's3:ListBucketMultipartUploads',
         ],
         resources: [bucket.bucketArn, bucket.arnForObjects('*')],
-      })
+      }),
     );
 
     // CloudFront invalidation on this distribution
@@ -196,7 +206,7 @@ export class StaticSiteStack extends cdk.Stack {
         effect: iam.Effect.ALLOW,
         actions: ['cloudfront:CreateInvalidation'],
         resources: [distributionArn],
-      })
+      }),
     );
 
     // --- CDK role: for cdk diff/deploy of this stack ---
@@ -226,7 +236,7 @@ export class StaticSiteStack extends cdk.Stack {
         effect: iam.Effect.ALLOW,
         actions: ['sts:AssumeRole'],
         resources: [filePublishingRoleArn, deployRoleArn, lookupRoleArn],
-      })
+      }),
     );
 
     // Allow reading the bootstrap stack version (CDK requires this)
@@ -236,7 +246,7 @@ export class StaticSiteStack extends cdk.Stack {
         effect: iam.Effect.ALLOW,
         actions: ['ssm:GetParameter'],
         resources: [bootstrapVersionParamArn],
-      })
+      }),
     );
 
     // --- Outputs (for wiring into GitHub Actions repo variables) ---

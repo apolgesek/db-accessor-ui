@@ -1,0 +1,140 @@
+<h3 nz-typography>New request</h3>
+<form #ref nz-form [formGroup]="form" (ngSubmit)="submit()" nzLayout="vertical">
+  <nz-form-item>
+    <nz-form-label nzRequired>Account ID</nz-form-label>
+    <nz-form-control [nzErrorTip]="accountErrTpl">
+      <nz-select
+        formControlName="accountId"
+        nzShowSearch
+        nzAllowClear
+        nzPlaceHolder="Select account (search by name or ID)"
+        nzOptionFilterProp="nzLabel"
+        style="width: 100%"
+      >
+        @for (opt of accountOptions; track opt) {
+          <nz-option [nzValue]="opt.value" [nzLabel]="opt.label"></nz-option>
+        }
+      </nz-select>
+      <ng-template #accountErrTpl let-control>
+        @if (control.hasError('required')) {
+          Account ID is required.
+        }
+        @if (control.hasError('pattern')) {
+          Must be exactly 12 digits.
+        }
+      </ng-template>
+    </nz-form-control>
+  </nz-form-item>
+
+  <nz-form-item>
+    <nz-form-label nzRequired>Region</nz-form-label>
+    <nz-form-control nzErrorTip="Region is required.">
+      <nz-select formControlName="region" nzPlaceHolder="Select region" nzShowSearch nzAllowClear>
+        @for (region of regionOptions | keyvalue; track region.key) {
+          <nz-option-group [nzLabel]="region.key">
+            @for (opt of region.value; track opt) {
+              <nz-option [nzValue]="opt.value" [nzLabel]="opt.label"></nz-option>
+            }
+          </nz-option-group>
+        }
+      </nz-select>
+    </nz-form-control>
+  </nz-form-item>
+
+  <nz-form-item>
+    <nz-form-label nzRequired>Table</nz-form-label>
+    <nz-form-control nzErrorTip="Table is required.">
+      <nz-select formControlName="table" nzPlaceHolder="Select table" nzShowSearch nzAllowClear>
+        @for (table of tables; track table.name) {
+          <nz-option [nzValue]="table.name" [nzLabel]="table.name"></nz-option>
+        }
+      </nz-select>
+    </nz-form-control>
+  </nz-form-item>
+
+  <nz-form-item>
+    <nz-form-label nzRequired>Target PK</nz-form-label>
+    <nz-form-control nzErrorTip="Target PK is required.">
+      <input nz-input formControlName="targetPK" placeholder="Partition key" />
+    </nz-form-control>
+  </nz-form-item>
+
+  <nz-form-item>
+    <nz-form-label [nzRequired]="selectedTableHasSortKey">Target SK</nz-form-label>
+    <nz-form-control nzErrorTip="Target SK is required.">
+      <input nz-input formControlName="targetSK" />
+    </nz-form-control>
+  </nz-form-item>
+
+  <nz-form-item>
+    <nz-form-label nzRequired>Duration (hours)</nz-form-label>
+    <nz-form-control [nzErrorTip]="durationErrTpl">
+      <nz-input-number
+        formControlName="duration"
+        [nzMin]="1"
+        [nzMax]="24"
+        [nzStep]="1"
+        [nzPlaceHolder]="'1–24'"
+        style="width: 100%"
+      ></nz-input-number>
+
+      <ng-template #durationErrTpl let-control>
+        @if (control.hasError('required')) {
+          Duration is required.
+        }
+        @if (control.hasError('min')) {
+          Minimum is 1.
+        }
+        @if (control.hasError('max')) {
+          Maximum is 24.
+        }
+        @if (control.hasError('integer')) {
+          Must be an integer.
+        }
+      </ng-template>
+    </nz-form-control>
+  </nz-form-item>
+
+  <nz-form-item>
+    <nz-form-label nzRequired>Jira issue key</nz-form-label>
+    <nz-form-control [nzErrorTip]="issueKeyErrTpl">
+      <input nz-input formControlName="issueKey" placeholder="FEYES-123" style="text-transform: uppercase" />
+      <ng-template #issueKeyErrTpl let-control>
+        @if (control.hasError('required')) {
+          Jira issue key is required.
+        }
+        @if (control.hasError('pattern')) {
+          Use a valid issue key, for example FEYES-123.
+        }
+      </ng-template>
+    </nz-form-control>
+  </nz-form-item>
+
+  <nz-form-item>
+    <nz-form-label nzRequired>Reason</nz-form-label>
+    <nz-form-control [nzErrorTip]="reasonErrTpl">
+      <nz-textarea-count [nzMaxCharacterCount]="1024">
+        <textarea
+          nz-input
+          formControlName="reason"
+          rows="4"
+          maxlength="1024"
+          placeholder="Explain why you need access"
+        ></textarea>
+      </nz-textarea-count>
+      <ng-template #reasonErrTpl let-control>
+        @if (control.hasError('required')) {
+          Reason is required.
+        }
+      </ng-template>
+    </nz-form-control>
+  </nz-form-item>
+
+  @if (form.hasError('notFound')) {
+    <div style="color: #ff4d4f">{{ form.errors?.['notFound'] }}</div>
+  }
+
+  <div style="display: flex; justify-content: end; margin-top: 2rem">
+    <button nz-button nzType="primary">Submit</button>
+  </div>
+</form>
