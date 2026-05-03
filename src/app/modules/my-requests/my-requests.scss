@@ -1,0 +1,112 @@
+.my-requests__duration-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.my-requests__request-progress {
+  position: relative;
+  flex: 1 1 auto;
+  width: 100%;
+  height: 24px;
+  border-radius: 2px;
+  background: #e7f6ec;
+  overflow: hidden;
+}
+
+.my-requests__request-progress-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  height: 100%;
+  background: linear-gradient(90deg, #4caf50, #2e8b57);
+}
+
+.my-requests__request-progress-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #103319;
+  text-transform: lowercase;
+}
+
+.my-requests__request-progress--expired {
+  background: #fdeeee;
+}
+
+.my-requests__request-progress--expired .my-requests__request-progress-fill {
+  background: linear-gradient(90deg, #f3a5a5, #e88f8f);
+}
+
+.my-requests__request-progress--expired .my-requests__request-progress-text {
+  color: #7a1f1f;
+  text-transform: uppercase;
+}
+
+.my-requests__request-progress--warning {
+  background: #fff7e6;
+}
+
+.my-requests__request-progress--warning .my-requests__request-progress-fill {
+  background: linear-gradient(90deg, #ffd27a, #ffb84d);
+}
+
+.my-requests__request-progress--warning .my-requests__request-progress-text {
+  color: #6a4600;
+}
+
+.my-requests__request-progress--critical {
+  background: #fdeeee;
+}
+
+.my-requests__request-progress--critical .my-requests__request-progress-fill {
+  background: linear-gradient(90deg, #f3a5a5, #e88f8f);
+}
+
+.my-requests__request-progress--critical .my-requests__request-progress-text {
+  color: #7a1f1f;
+}
+
+/* Neutral / pending state for request progress */
+.my-requests__request-progress--neutral {
+  background: #f0f2f5;
+}
+
+.my-requests__request-progress--neutral .my-requests__request-progress-fill {
+  background: #d9d9d9;
+}
+
+.my-requests__request-progress--neutral .my-requests__request-progress-text {
+  color: #595959;
+  text-transform: none;
+}
+
+/* Status icons in requests table */
+.my-requests__status-cell {
+  text-align: center;
+}
+
+.my-requests__status-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.my-requests__status-icon--approved {
+  color: #52c41a;
+}
+
+.my-requests__status-icon--rejected {
+  color: #ff4d4f;
+}
+
+.my-requests__status-icon--pending {
+  color: #faad14;
+}
+
+.my-requests__status-text {
+  font-weight: 600;
+  color: #2f3a45;
+}

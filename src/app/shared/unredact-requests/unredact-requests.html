@@ -1,0 +1,47 @@
+@if (unredactRequests.length) {
+  <div style="margin-top: 1rem">
+    <div><strong>Unredact Requests:</strong></div>
+    @for (unredactRequest of unredactRequests; track unredactRequest) {
+      <div
+        style="
+          display: flex;
+          flex-direction: column;
+          border: 1px solid #d9d9d9;
+          border-radius: 4px;
+          padding: 0.5rem;
+          margin-top: 0.5rem;
+        "
+      >
+        <div style="display: flex; align-items: baseline">
+          <div><strong>Reason:</strong> {{ unredactRequest.reason }}</div>
+          <div style="color: rgba(0, 0, 0, 0.45); margin-left: 2rem; font-size: 0.7rem">
+            {{ unredactRequest.createdAt | date: 'dd/MM/yyyy HH:mm' }}
+          </div>
+          <div style="margin-right: auto; margin-left: 1rem">
+            @if (!unredactRequest.approvalRequired) {
+              <span class="unredact-requests__info" style="font-size: 0.7rem">AUTO-APPROVED</span>
+            } @else {
+              TODO
+            }
+          </div>
+          <div>
+            <a href="#" (click)="toggle(unredactRequest, $event)"
+              >Details
+              <nz-icon [nzType]="unredactRequest.showDetails ? 'up' : 'down'"></nz-icon>
+            </a>
+          </div>
+        </div>
+        @if (unredactRequest.showDetails) {
+          <div>
+            <strong>Paths:</strong>
+            <ul class="unredact-requests__paths" style="margin-top: 0.5rem">
+              @for (path of unredactRequest.paths; track path) {
+                <li>{{ path }}</li>
+              }
+            </ul>
+          </div>
+        }
+      </div>
+    }
+  </div>
+}

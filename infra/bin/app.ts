@@ -17,4 +17,5 @@ new StaticSiteStack(app, 'StaticSiteStack', {
   // alternateDomainName: 'app.example.com',
   githubOrg: 'apolgesek',
   githubRepo: 'db-accessor-ui',
+  allowedIp: '63.176.89.71',
 });

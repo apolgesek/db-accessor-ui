@@ -1,0 +1,120 @@
+<nz-breadcrumb style="margin-bottom: 1rem">
+  <nz-breadcrumb-item>
+    <a routerLink="/admin/configuration">Configuration</a>
+  </nz-breadcrumb-item>
+  <nz-breadcrumb-item>List rulesets</nz-breadcrumb-item>
+</nz-breadcrumb>
+
+<h3 nz-typography>Active rulesets</h3>
+
+<div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 1.5rem">
+  <nz-select
+    [(ngModel)]="selectedAccount"
+    (ngModelChange)="onAccountChange($event)"
+    nzShowSearch
+    nzAllowClear
+    nzPlaceHolder="Select account"
+    nzOptionFilterProp="nzLabel"
+    style="min-width: 280px"
+  >
+    @for (opt of accountOptions; track opt.value) {
+      <nz-option [nzValue]="opt.value" [nzLabel]="opt.label"></nz-option>
+    }
+  </nz-select>
+
+  <nz-select
+    [(ngModel)]="selectedRegion"
+    (ngModelChange)="onRegionChange($event)"
+    nzShowSearch
+    nzAllowClear
+    nzPlaceHolder="Select region"
+    style="min-width: 200px"
+  >
+    @for (region of regionOptions | keyvalue; track region.key) {
+      <nz-option-group [nzLabel]="region.key">
+        @for (opt of region.value; track opt.value) {
+          <nz-option [nzValue]="opt.value" [nzLabel]="opt.label"></nz-option>
+        }
+      </nz-option-group>
+    }
+  </nz-select>
+
+  <nz-select
+    [(ngModel)]="selectedTable"
+    (ngModelChange)="onTableChange($event)"
+    [nzDisabled]="tableSelectDisabled"
+    nzShowSearch
+    nzAllowClear
+    nzPlaceHolder="Select table"
+    style="min-width: 200px"
+  >
+    @for (table of tables; track table.name) {
+      <nz-option [nzValue]="table.name" [nzLabel]="table.name"></nz-option>
+    }
+  </nz-select>
+</div>
+
+<nz-table #scopeTable [nzData]="filteredScopes" nzTableLayout="fixed">
+  <thead>
+    <tr>
+      <th nzWidth="80px">
+        <nz-icon
+          nzType="plus"
+          class="ant-table-row-expand-icon"
+          style="margin-right: 0.5rem"
+          (click)="expandAll()"
+        />
+        <nz-icon nzType="minus" class="ant-table-row-expand-icon" (click)="collapseAll()" />
+      </th>
+      <th>Target PK</th>
+      <th nzWidth="140px">PK Operator</th>
+      <th>Target SK</th>
+      <th nzWidth="140px">SK Operator</th>
+      <th nzWidth="165px">Updated at</th>
+      <th nzWidth="100px">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (row of scopeTable.data; track row.scopeKey) {
+      <tr>
+        <td
+          [nzExpand]="expandSet.has(row.scopeKey)"
+          (nzExpandChange)="onExpandChange(row.scopeKey, $event)"
+        ></td>
+        <td>{{ row.targetPK }}</td>
+        <td>{{ row.pkOperator ?? '—' }}</td>
+        <td>{{ row.targetSK ?? '—' }}</td>
+        <td>{{ row.skOperator ?? '—' }}</td>
+        <td>{{ row.updatedAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+        <td>
+          <button
+            nz-button
+            nzType="link"
+            nzSize="small"
+            (click)="onEdit(row)"
+            title="Edit"
+            style="margin-right: 0.5rem"
+          >
+            <span nz-icon nzType="edit"></span>
+          </button>
+          <button
+            nz-button
+            nzType="link"
+            nzSize="small"
+            nzDanger
+            (click)="onRemove(row)"
+            title="Remove"
+          >
+            <span nz-icon nzType="delete"></span>
+          </button>
+        </td>
+      </tr>
+      <tr [nzExpand]="expandSet.has(row.scopeKey)">
+        <strong>Paths:</strong>
+        @for (path of row.paths; track path) {
+          <div>{{ path }}</div>
+        }
+      </tr>
+    }
+  </tbody>
+</nz-table>

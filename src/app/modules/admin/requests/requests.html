@@ -1,0 +1,130 @@
+<h3 nz-typography>{{ title }}</h3>
+@if (filters?.includes('dateRange')) {
+  <nz-range-picker nzMode="month" [(ngModel)]="date" (ngModelChange)="onChange()"></nz-range-picker>
+}
+
+<nz-table #basicTable [nzData]="requests" nzTableLayout="fixed" style="margin-top: 1rem">
+  <thead>
+    <tr>
+      <th nzWidth="80px">
+        <nz-icon
+          nzType="plus"
+          class="ant-table-row-expand-icon"
+          style="margin-right: 0.5rem"
+          (click)="expandAll()"
+        />
+        <nz-icon nzType="minus" class="ant-table-row-expand-icon" (click)="collapseAll()" />
+      </th>
+      <th>Username</th>
+      <th>Table</th>
+      <th>Target PK</th>
+      <th>Target SK</th>
+      <th nzWidth="100px">Duration</th>
+      <th>Status</th>
+      <th>Created at</th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (data of basicTable.data; track data) {
+      <tr>
+        <td
+          [nzExpand]="expandSet.has(data.SK)"
+          (nzExpandChange)="onExpandChange(data.SK, $event)"
+        ></td>
+        <td>
+          {{ data.userId }}
+        </td>
+        <td>{{ data.table }}</td>
+        <td>{{ data.targetPK }}</td>
+        <td>{{ data.targetSK }}</td>
+        <td>{{ data.duration }} h</td>
+        <td [class]="data.status.toLowerCase()">{{ data.status }}</td>
+        <td>{{ data.createdAt | date: 'dd/MM/yyyy HH:mm:ss' }}</td>
+      </tr>
+      <tr [nzExpand]="expandSet.has(data.SK)">
+        <div nz-row style="margin-bottom: 1rem">
+          <div nz-col nzSpan="4"><strong>Account:</strong> {{ data.accountId }}</div>
+          <div nz-col nzSpan="4"><strong>Region:</strong> {{ data.region }}</div>
+        </div>
+        <div nz-row>
+          <div nz-col nzSpan="4"><strong>Jira issue:</strong> {{ data.issueKey }}</div>
+          <div nz-col nzSpan="20"><strong>Reason:</strong> {{ data.reason }}</div>
+        </div>
+        @if (data.status === 'APPROVED' || data.status === 'REJECTED') {
+          <div nz-row style="margin-top: 1rem; background-color: #fff4db; padding: 1rem">
+            @if (data.adminApprovedAt) {
+              <div nz-row>
+                <div nz-col nzSpan="24">
+                  <strong>Approved at:</strong>
+                  {{ data.adminApprovedAt | date: 'dd/MM/yyyy HH:mm' }}, by
+                  <span class="admin-requests__admin">{{ data.adminApprovedBy }}</span>
+                </div>
+              </div>
+            }
+            @if (data.rejectedBy) {
+              <div nz-row>
+                <div nz-col nzSpan="24">
+                  <strong>Rejected at:</strong>
+                  {{ data.rejectedBy.rejectedAt | date: 'dd/MM/yyyy HH:mm' }}, by
+                  <span class="admin-requests__admin">{{ data.rejectedBy.username }}</span>
+                </div>
+              </div>
+            }
+            @if (data.comment) {
+              <div nz-col nzSpan="24"><strong>Comment:</strong> {{ data.comment }}</div>
+            }
+          </div>
+          <app-unredact-requests
+            [unredactRequests]="data.unredactRequests ?? []"
+          ></app-unredact-requests>
+        }
+        @if (data.status === 'PENDING') {
+          <div
+            style="
+              display: flex;
+              gap: 1rem;
+              margin-top: 1.5rem;
+              background-color: #fff4db;
+              padding: 1rem;
+            "
+          >
+            <nz-form-control>
+              <nz-textarea-count [nzMaxCharacterCount]="500">
+                <textarea
+                  [(ngModel)]="data.comment"
+                  nz-input
+                  rows="4"
+                  cols="50"
+                  maxlength="500"
+                  placeholder="Put your comment here"
+                ></textarea>
+              </nz-textarea-count>
+            </nz-form-control>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem; padding-top: 1rem">
+              <button
+                nz-button
+                nzType="primary"
+                style="width: 100%; text-align: left"
+                (click)="approve(data)"
+              >
+                <nz-icon nzType="check" nzTheme="outline" />
+                Approve
+              </button>
+              <button
+                nz-button
+                nzType="default"
+                [disabled]="!data.comment"
+                nzDanger
+                style="width: 100%; text-align: left"
+                (click)="reject(data)"
+              >
+                <nz-icon nzType="close" nzTheme="outline" />
+                Reject
+              </button>
+            </div>
+          </div>
+        }
+      </tr>
+    }
+  </tbody>
+</nz-table>

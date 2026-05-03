@@ -1,42 +1,77 @@
-<nz-layout class="app-layout">
-  <nz-sider class="menu-sidebar" nzCollapsible nzWidth="256px" nzBreakpoint="md" [nzTrigger]="null">
-    <div class="sidebar-logo">
-      <a href="/">
-        <h1>DB Accessor app</h1>
-      </a>
-    </div>
-    <ul nz-menu nzTheme="dark" nzMode="inline">
-      <li nz-submenu nzOpen nzTitle="Admin dashboard" nzIcon="global">
-        <ul>
-          <li nz-menu-item nzMatchRouter>
-            <a routerLink="/iam-policies">IAM Policies</a>
+<nz-layout class="app">
+  @if (isAuthenticated) {
+    <nz-sider
+      class="app__menu-sidebar"
+      nzCollapsible
+      nzWidth="256px"
+      nzBreakpoint="md"
+      [nzTrigger]="null"
+    >
+      <div class="app__sidebar-logo">
+        <a href="/" aria-label="4eyesdb home">
+          <img src="/4eyesdb-logo.svg" alt="4eyesdb" />
+        </a>
+      </div>
+      <ul nz-menu nzTheme="dark" nzMode="inline">
+        @if (isAdmin) {
+          <li nz-submenu nzOpen nzTitle="Admin dashboard">
+            <ul>
+              <li nz-menu-item nzMatchRouter>
+                <nz-icon nzType="global" style="margin-right: 0.5rem"></nz-icon>
+                <a routerLink="/admin/all-requests">All requests</a>
+              </li>
+              <li nz-menu-item nzMatchRouter>
+                <nz-icon nzType="hourglass" style="margin-right: 0.5rem"></nz-icon>
+                <a routerLink="/admin/pending-requests">Pending requests</a>
+              </li>
+              <li nz-menu-item nzMatchRouter>
+                <nz-icon nzType="setting" style="margin-right: 0.5rem"></nz-icon>
+                <a routerLink="/admin/configuration">Configuration</a>
+              </li>
+            </ul>
           </li>
-          <li nz-menu-item nzMatchRouter>
-            <a routerLink="/sso-policies">SSO Policies</a>
-          </li>
-          <li nz-menu-item nzMatchRouter>
-            <a>Pending requests</a>
-          </li>
-        </ul>
-      </li>
-      <li nz-menu-item nzMatchRouter>
-        <nz-icon nzType="solution" />
-        <span>My requests</span>
-      </li>
-    </ul>
-    <div class="version">{{ appVersion }}</div>
-  </nz-sider>
+        }
+        <li nz-submenu nzOpen nzTitle="Requests">
+          <ul>
+            <li nz-menu-item nzMatchRouter>
+              <nz-icon nzType="user" style="margin-right: 0.5rem"></nz-icon>
+              <a routerLink="/my-requests/all">My requests</a>
+            </li>
+            <li nz-menu-item nzMatchRouter>
+              <nz-icon nzType="plus-square" style="margin-right: 0.5rem"></nz-icon>
+              <a routerLink="/my-requests/new">New request</a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+      <div class="app__version">{{ appVersion() }}</div>
+    </nz-sider>
+  }
   <nz-layout>
     <nz-content>
-      <div class="inner-content">
-        <router-outlet></router-outlet>
+      @if (isAuthenticated) {
+        <div style="display: flex; align-items: center; justify-content: end; margin-bottom: 1rem">
+          <div style="margin-right: 1rem; display: flex; gap: 0.5rem">
+            <nz-icon nzType="user"></nz-icon
+            ><span style="font-weight: 600" [ngClass]="{ admin: isAdmin }">{{ username }}</span>
+          </div>
+          <button nz-button nzType="default" (click)="logout()">Logout</button>
+        </div>
+      }
+      <div class="app__inner-content" [ngClass]="{ loading: isLoading() && !skeletonType }">
+        @if (isLoading() && skeletonType) {
+          @switch (skeletonType) {
+            @case (1) {
+              <app-loading-skeleton-table></app-loading-skeleton-table>
+            }
+            @default {
+              <app-loading-skeleton-default></app-loading-skeleton-default>
+            }
+          }
+        } @else {
+          <router-outlet></router-outlet>
+        }
       </div>
     </nz-content>
   </nz-layout>
 </nz-layout>
-
-@if (isLoading()) {
-<div class="loading-overlay">
-  <nz-spin nzSimple nzSize="large"></nz-spin>
-</div>
-}

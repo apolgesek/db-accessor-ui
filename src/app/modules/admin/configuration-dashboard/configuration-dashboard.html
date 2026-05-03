@@ -1,0 +1,27 @@
+<section class="configuration-dashboard">
+  <h3 nz-typography>Configuration dashboard</h3>
+  <p class="configuration-dashboard__description">
+    Manage the available configuration actions for DB Accessor.
+  </p>
+
+  <div class="configuration-dashboard__tiles">
+    <a class="configuration-dashboard__tile" routerLink="add-ruleset">
+      <div class="configuration-dashboard__tile__icon">
+        <nz-icon nzType="plus-square" nzTheme="outline"></nz-icon>
+      </div>
+      <div>
+        <h4>Add ruleset</h4>
+        <p>Create a new ruleset request for an account and table.</p>
+      </div>
+    </a>
+    <a class="configuration-dashboard__tile" routerLink="list-ruleset">
+      <div class="configuration-dashboard__tile__icon">
+        <nz-icon nzType="unordered-list" nzTheme="outline"></nz-icon>
+      </div>
+      <div>
+        <h4>List rulesets</h4>
+        <p>View and manage existing rulesets.</p>
+      </div>
+    </a>
+  </div>
+</section>

@@ -1,0 +1,187 @@
+<nz-breadcrumb style="margin-bottom: 1rem">
+  <nz-breadcrumb-item>
+    <a routerLink="/admin/configuration">Configuration</a>
+  </nz-breadcrumb-item>
+  <nz-breadcrumb-item>{{ pageTitle }}</nz-breadcrumb-item>
+</nz-breadcrumb>
+<h3 nz-typography>{{ pageTitle }}</h3>
+<form nz-form [formGroup]="form" (ngSubmit)="submit()" nzLayout="vertical">
+  <nz-form-item>
+    <nz-form-label nzRequired>Account ID</nz-form-label>
+    <nz-form-control [nzErrorTip]="accountErrTpl">
+      <nz-select
+        formControlName="accountId"
+        nzShowSearch
+        nzAllowClear
+        nzPlaceHolder="Select account (search by name or ID)"
+        nzOptionFilterProp="nzLabel"
+        style="width: 100%"
+      >
+        @for (opt of accountOptions; track opt) {
+          <nz-option [nzValue]="opt.value" [nzLabel]="opt.label"></nz-option>
+        }
+      </nz-select>
+      <ng-template #accountErrTpl let-control>
+        @if (control.hasError('required')) {
+          Account ID is required.
+        }
+        @if (control.hasError('pattern')) {
+          Must be exactly 12 digits.
+        }
+      </ng-template>
+    </nz-form-control>
+  </nz-form-item>
+
+  <nz-form-item>
+    <nz-form-label nzRequired>Region</nz-form-label>
+    <nz-form-control nzErrorTip="Region is required.">
+      <nz-select formControlName="region" nzPlaceHolder="Select region" nzShowSearch nzAllowClear>
+        @for (region of regionOptions | keyvalue; track region.key) {
+          <nz-option-group [nzLabel]="region.key">
+            @for (opt of region.value; track opt) {
+              <nz-option [nzValue]="opt.value" [nzLabel]="opt.label"></nz-option>
+            }
+          </nz-option-group>
+        }
+      </nz-select>
+    </nz-form-control>
+  </nz-form-item>
+
+  <nz-form-item>
+    <nz-form-label nzRequired>Table</nz-form-label>
+    <nz-form-control nzErrorTip="Table is required.">
+      <nz-select formControlName="table" nzPlaceHolder="Select table" nzShowSearch nzAllowClear>
+        @for (table of tables; track table.name) {
+          <nz-option [nzValue]="table.name" [nzLabel]="table.name"></nz-option>
+        }
+      </nz-select>
+    </nz-form-control>
+  </nz-form-item>
+
+  <div style="display: flex; gap: 0.5rem; align-items: flex-start">
+    <nz-form-item style="flex: 1">
+      <nz-form-label nzRequired>Target PK</nz-form-label>
+      <nz-form-control nzErrorTip="Target PK is required.">
+        <input nz-input formControlName="targetPK" placeholder="Partition key" />
+      </nz-form-control>
+    </nz-form-item>
+
+    <nz-form-item style="width: 20%">
+      <nz-form-label nzRequired>PK Operator</nz-form-label>
+      <nz-form-control nzErrorTip="PK Operator is required.">
+        <nz-select formControlName="pkOperator" nzPlaceHolder="Select operator">
+          @for (opt of operatorOptions; track opt.value) {
+            <nz-option [nzValue]="opt.value" [nzLabel]="opt.label"></nz-option>
+          }
+        </nz-select>
+      </nz-form-control>
+    </nz-form-item>
+  </div>
+
+  <div style="display: flex; gap: 0.5rem; align-items: flex-start">
+    <nz-form-item style="flex: 1">
+      <nz-form-label>Target SK</nz-form-label>
+      <nz-form-control>
+        <input nz-input formControlName="targetSK" placeholder="Sort key (optional)" />
+      </nz-form-control>
+    </nz-form-item>
+
+    <nz-form-item style="width: 20%">
+      <nz-form-label>SK Operator</nz-form-label>
+      <nz-form-control nzErrorTip="SK Operator is required when Target SK is set.">
+        <nz-select formControlName="skOperator" nzPlaceHolder="Select operator">
+          @for (opt of operatorOptions; track opt.value) {
+            <nz-option [nzValue]="opt.value" [nzLabel]="opt.label"></nz-option>
+          }
+        </nz-select>
+      </nz-form-control>
+    </nz-form-item>
+  </div>
+
+  @if (matchingScope) {
+    <ng-template #existingScope>
+      Existing ruleset found for current scope —
+      <a (click)="loadMatchingScope()" (keydown)="loadMatchingScope()" tabindex="0"
+        >click to edit</a
+      >
+      or change the fields above to continue adding a new one.
+    </ng-template>
+    <nz-alert nzType="info" [nzMessage]="existingScope" nzShowIcon />
+  }
+  <h4 nz-typography style="margin-top: 1rem">Ruleset</h4>
+
+  <div formArrayName="ruleset">
+    @for (rule of rulesetControls; track rule; let i = $index) {
+      <div
+        [formGroupName]="i"
+        style="
+          display: flex;
+          gap: 0.5rem;
+          align-items: flex-start;
+          padding: 0.75rem;
+          border: 1px solid #f0f0f0;
+          margin-bottom: 0.75rem;
+        "
+      >
+        <nz-form-item style="flex: 1; margin-bottom: 0">
+          <nz-form-label nzRequired>Path</nz-form-label>
+          <nz-form-control [nzErrorTip]="pathErrTpl">
+            <input nz-input formControlName="path" maxlength="255" />
+            <ng-template #pathErrTpl let-control>
+              @if (control.hasError('required')) {
+                Path is required.
+              }
+              @if (control.hasError('maxlength')) {
+                Max length is 255.
+              }
+            </ng-template>
+          </nz-form-control>
+        </nz-form-item>
+
+        <nz-form-item style="margin-bottom: 0">
+          <nz-form-label>&nbsp;</nz-form-label>
+          <nz-form-control>
+            <button
+              nz-button
+              type="button"
+              nzType="default"
+              nzDanger
+              (click)="removeRule(i)"
+              [disabled]="rulesetControls.length === 1 || form.controls.ruleset.disabled"
+            >
+              Remove rule <nz-icon nzType="close" nzTheme="outline" />
+            </button>
+          </nz-form-control>
+        </nz-form-item>
+      </div>
+    }
+  </div>
+
+  <button
+    nz-button
+    type="button"
+    nzType="default"
+    (click)="addRule()"
+    [disabled]="form.controls.ruleset.disabled"
+  >
+    Add rule <nz-icon nzType="plus" nzTheme="outline" />
+  </button>
+
+  @if (form.hasError('notFound')) {
+    <div style="color: #ff4d4f; margin-top: 0.75rem">{{ form.errors?.['notFound'] }}</div>
+  }
+  @if (form.hasError('invalidRulesetId')) {
+    <div style="color: #ff4d4f; margin-top: 0.75rem">
+      {{ form.errors?.['invalidRulesetId'] }}
+    </div>
+  }
+  @if (form.hasError('rulesetLoad')) {
+    <div style="color: #ff4d4f; margin-top: 0.75rem">{{ form.errors?.['rulesetLoad'] }}</div>
+  }
+
+  <div style="display: flex; justify-content: end; margin-top: 2rem">
+    <button nz-button nzType="primary" [disabled]="form.invalid || form.controls.ruleset.disabled">
+      {{ submitLabel }}
+    </button>
+  </div>
+</form>

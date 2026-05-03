@@ -1,0 +1,39 @@
+<nz-skeleton
+  [nzActive]="true"
+  [nzTitle]="false"
+  [nzParagraph]="{
+    rows: 1,
+    width: ['40%'],
+  }"
+/>
+<nz-table #basicTable [nzData]="skeletonRows" nzTableLayout="fixed" [nzFrontPagination]="false">
+  <thead>
+    <tr>
+      @for (item of skeletonCols; track $index) {
+        <th>
+          <nz-skeleton
+            [nzActive]="true"
+            [nzTitle]="false"
+            [nzParagraph]="{ rows: 1, width: '100%' }"
+          ></nz-skeleton>
+        </th>
+      }
+    </tr>
+  </thead>
+  <tbody></tbody>
+  <tbody>
+    @for (data of basicTable.data; track trackFn()) {
+      <tr>
+        @for (item of skeletonCols; track trackFn()) {
+          <td>
+            <nz-skeleton
+              [nzActive]="true"
+              [nzTitle]="false"
+              [nzParagraph]="{ rows: 1, width: '100%' }"
+            ></nz-skeleton>
+          </td>
+        }
+      </tr>
+    }
+  </tbody>
+</nz-table>

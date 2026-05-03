@@ -1,0 +1,53 @@
+<nz-breadcrumb style="margin-bottom: 1rem">
+  <nz-breadcrumb-item>
+    <a routerLink="/my-requests">My requests</a>
+  </nz-breadcrumb-item>
+  <nz-breadcrumb-item>{{ id }}</nz-breadcrumb-item>
+</nz-breadcrumb>
+<nz-divider></nz-divider>
+<div style="margin-bottom: 1rem">
+  <strong>Table:</strong> {{ request.table }} | <strong>PK:</strong> {{ request.PK }}
+  @if (request.SK) {
+    | <strong>SK:</strong> {{ request.SK }}
+  }
+</div>
+@if (paths.length) {
+  <div style="margin-bottom: 1rem">
+    <nz-list nzBordered nzSize="small">
+      <nz-list-header><strong>Unredacted paths</strong></nz-list-header>
+      @for (path of paths; track path) {
+        <nz-list-item>{{ path }}</nz-list-item>
+      }
+    </nz-list>
+  </div>
+}
+<div #viewer style="width: 100%; height: 500px"></div>
+<div style="margin: 2rem 0 1rem">
+  <label nz-checkbox [(ngModel)]="selectAll" (ngModelChange)="onSelectAllChange()"
+    >Select all redacted nodes</label
+  >
+</div>
+<nz-list nzBordered nzSize="small">
+  <nz-list-header><strong>Path patterns</strong></nz-list-header>
+  @for (item of selectedRedactedElements; track item) {
+    <nz-list-item
+      >{{ item }}
+      <button nz-button nzType="default" (click)="removePath(item)">
+        <nz-icon nzType="minus" nzTheme="outline" /></button
+    ></nz-list-item>
+  }
+
+  <nz-list-footer
+    >Total patterns: <strong>{{ selectedRedactedElements.length }}</strong></nz-list-footer
+  >
+</nz-list>
+
+<button
+  nz-button
+  nzType="primary"
+  style="margin-top: 1rem"
+  [disabled]="!selectedRedactedElements.length"
+  (click)="unredact()"
+>
+  Send unredact request
+</button>

@@ -4,3 +4,60 @@ body {
   min-height: 100%;
   overflow: hidden;
 }
+
+.redacted {
+  .jsoneditor-value {
+    background-color: #fff3cd;
+    border-radius: 0.35rem;
+    cursor: pointer;
+    &:hover {
+      background-color: #c1e0ff;
+    }
+  }
+
+  &.selected .jsoneditor-value {
+    background-color: #c1e0ff;
+    outline: 1px solid #46a3ff;
+  }
+}
+
+.pending {
+  color: #faad14;
+}
+
+.approved {
+  color: #327710;
+}
+
+.rejected,
+.expired {
+  color: #a8071a;
+}
+
+.admin {
+  color: #d4380d;
+}
+
+.info {
+  color: #096dd9;
+}
+
+strong {
+  font-weight: 600;
+}
+
+ul.paths {
+  list-style: none;
+  padding-left: 0;
+
+  li {
+    margin-bottom: 4px;
+    background-color: #ebebeb;
+    padding: 0.25rem 0.5rem;
+    color: #5a5a5a;
+    border-radius: 4px;
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
