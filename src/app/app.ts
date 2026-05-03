@@ -63,7 +63,7 @@ export class App {
       window.sessionStorage.clear();
     }
 
-    window.location.href =
-      'https://eu-central-16rlj50drm.auth.eu-central-1.amazoncognito.com/logout?client_id=6n5d5gru7c0ncf5npa0m5ls2n8&logout_uri=http%3A%2F%2Flocalhost%3A4200%2Flogin';
+    const logoutUrl = `${window.location.protocol}//${window.location.host}/login`;
+    window.location.href = `https://eu-central-16rlj50drm.auth.eu-central-1.amazoncognito.com/logout?client_id=6n5d5gru7c0ncf5npa0m5ls2n8&logout_uri=${encodeURIComponent(logoutUrl)}`;
   }
 }
