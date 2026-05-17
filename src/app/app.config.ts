@@ -12,6 +12,7 @@ import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common
 import en from '@angular/common/locales/en';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import {
+  AbstractSecurityStorage,
   authInterceptor,
   OidcSecurityService,
   OpenIdConfiguration,
@@ -24,6 +25,7 @@ import { provideNzIcons } from 'ng-zorro-antd/icon';
 import { filter, forkJoin, map, of, switchMap, take, tap } from 'rxjs';
 import { routes } from './app.routes';
 import { authConfig } from './auth/auth.config';
+import { LocalStorageService } from './auth/local-storage.service';
 import { AppConfig, ConfigService } from './core';
 import { BASE_URL } from './core/base-url';
 import { icons } from './icons-provider';
@@ -39,7 +41,7 @@ const authFactory = (configService: ConfigService) => {
       config.secureRoutes = [configService.apiUrl()];
 
       return config;
-    })
+    }),
   );
 
   return new StsConfigHttpLoader(obs$);
@@ -85,14 +87,15 @@ export const appConfig: ApplicationConfig = {
         }),
         tap(({ isAuthenticated, userData, idTokenPayload }) => {
           authService.setAuthData(isAuthenticated, userData, idTokenPayload);
-        })
+        }),
       );
 
       const config$ = http.get<AppConfig>('config.json').pipe(
         tap((config: AppConfig) => {
           configService.apiUrl.set(config.apiUrl);
           configService.version.set(config.version);
-        })
+          configService.webSocketUrl.set(config.webSocketUrl);
+        }),
       );
 
       return forkJoin([config$, auth$]);
@@ -105,5 +108,6 @@ export const appConfig: ApplicationConfig = {
         deps: [ConfigService],
       },
     }),
+    { provide: AbstractSecurityStorage, useClass: LocalStorageService },
   ],
 };

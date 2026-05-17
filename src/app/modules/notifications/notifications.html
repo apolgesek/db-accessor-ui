@@ -1,0 +1,66 @@
+<section class="notifications-page">
+  <div class="notifications-page__header">
+    <div>
+      <h3 nz-typography>Notifications</h3>
+      <p nz-typography nzType="secondary">Latest request decisions from the last 6 months</p>
+    </div>
+  </div>
+
+  <div #scroller class="notifications-page__scroller" (scroll)="onScroll($event)">
+    <nz-list
+      nzBordered
+      nzItemLayout="vertical"
+      [nzLoading]="isLoading() && !hasLoaded()"
+      nzNoResult="No notifications from the last 6 months"
+    >
+      @for (notification of notifications(); track notification.id) {
+        <nz-list-item
+          class="notifications-page__item"
+          [ngClass]="{ 'notifications-page__item--unread': !notification.readAt }"
+        >
+          <nz-list-item-meta>
+            <nz-list-item-meta-title>
+              <div class="notifications-page__item-title-row">
+                <div class="notifications-page__item-title">
+                  {{ notificationTitle(notification) }}
+                </div>
+                <div class="notifications-page__item-side">
+                  <nz-tag
+                    class="notifications-page__status-tag"
+                    [nzColor]="notification.status === 'APPROVED' ? 'success' : 'error'"
+                  >
+                    {{ notification.status === 'APPROVED' ? 'Approved' : 'Rejected' }}
+                  </nz-tag>
+                  <span class="notifications-page__time">
+                    {{ notification.createdAt | date: 'dd/MM/yyyy HH:mm' }}
+                  </span>
+                </div>
+              </div>
+            </nz-list-item-meta-title>
+            <nz-list-item-meta-description>
+              <div>
+                {{ notification.table }} &middot; {{ notification.accountId }} &middot;
+                {{ notification.region }}
+              </div>
+              <div class="notifications-page__details">
+                <span class="notifications-page__details-label">Reason:</span>
+                <span>{{ notification.comment || 'No reason provided' }}</span>
+              </div>
+            </nz-list-item-meta-description>
+          </nz-list-item-meta>
+        </nz-list-item>
+      }
+
+      <nz-list-footer>
+        @if (isLoading() && hasLoaded()) {
+          <div class="notifications-page__footer-state">
+            <nz-spin nzSimple></nz-spin>
+            <span>Loading more notifications</span>
+          </div>
+        } @else if (!hasMore() && notifications().length) {
+          <span class="notifications-page__footer-note">No more notifications from the last 6 months</span>
+        }
+      </nz-list-footer>
+    </nz-list>
+  </div>
+</section>

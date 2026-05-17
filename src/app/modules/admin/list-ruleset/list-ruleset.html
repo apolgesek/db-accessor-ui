@@ -81,9 +81,9 @@
           [nzExpand]="expandSet.has(row.scopeKey)"
           (nzExpandChange)="onExpandChange(row.scopeKey, $event)"
         ></td>
-        <td>{{ row.targetPK }}</td>
+        <td>{{ row.targetPk }}</td>
         <td>{{ row.pkOperator ?? '—' }}</td>
-        <td>{{ row.targetSK ?? '—' }}</td>
+        <td>{{ row.targetSk ?? '—' }}</td>
         <td>{{ row.skOperator ?? '—' }}</td>
         <td>{{ row.updatedAt | date: 'dd/MM/yyyy HH:mm' }}</td>
         <td>

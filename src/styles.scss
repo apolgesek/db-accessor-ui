@@ -61,3 +61,10 @@ ul.paths {
     }
   }
 }
+
+.app__notifications-menu .ant-menu-title-content,
+.app__notifications-menu .ant-dropdown-menu-title-content {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}

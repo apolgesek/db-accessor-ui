@@ -24,13 +24,13 @@
     @for (data of basicTable.data; track data) {
       <tr>
         <td
-          [nzExpand]="expandSet.has(data.SK)"
-          (nzExpandChange)="onExpandChange(data.SK, $event)"
+          [nzExpand]="expandSet.has(data.sk)"
+          (nzExpandChange)="onExpandChange(data.sk, $event)"
         ></td>
 
         <td nzEllipsis>{{ data.table }}</td>
-        <td nzEllipsis>{{ data.targetPK }}</td>
-        <td nzEllipsis>{{ data.targetSK }}</td>
+        <td nzEllipsis>{{ data.targetPk }}</td>
+        <td nzEllipsis>{{ data.targetSk }}</td>
         <td width="100px">
           <div class="my-requests__duration-progress-row">
             <div
@@ -93,7 +93,7 @@
           }
         </td>
       </tr>
-      <tr [nzExpand]="expandSet.has(data.SK)">
+      <tr [nzExpand]="expandSet.has(data.sk)">
         <div nz-row>
           <div nz-col nzSpan="12"><strong>Account:</strong> {{ data.accountId }}</div>
           <div nz-col nzSpan="12"><strong>Region:</strong> {{ data.region }}</div>

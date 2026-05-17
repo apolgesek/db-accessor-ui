@@ -75,11 +75,120 @@ nz-content {
   flex-direction: column;
 }
 
+.app__topbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.app__notification-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+}
+
+.app__notification-button nz-icon {
+  font-size: 18px;
+}
+
+.app__notifications-menu {
+  width: min(360px, calc(100vw - 32px));
+  padding: 4px 0;
+}
+
+.app__notification-menu-item {
+  height: auto;
+  padding: 8px 12px;
+  line-height: 1.3;
+  white-space: normal;
+}
+
+.app__notification-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  width: 100%;
+}
+
+.app__notification-summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.app__notification-status {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.app__notification-status.approved {
+  color: #237804;
+}
+
+.app__notification-status.rejected {
+  color: #a8071a;
+}
+
+.app__notification-time,
+.app__notification-meta {
+  overflow: hidden;
+  color: rgba(0, 0, 0, 0.55);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app__notification-title {
+  overflow: hidden;
+  color: rgba(0, 0, 0, 0.68);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app__notifications-empty {
+  color: rgba(0, 0, 0, 0.45);
+  cursor: default;
+}
+
+.app__notifications-footer {
+  text-align: center;
+}
+
+.app__notifications-footer a {
+  display: block;
+  font-weight: 600;
+}
+
+.app__user-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.app__username {
+  font-weight: 600;
+}
+
+.app__outer-content {
+  position: relative;
+  height: auto;
+  overflow: auto;
+}
+
 .app__inner-content {
   padding: 24px;
   background: #fff;
   overflow: auto;
-  position: relative;
+  height: 100%;
 
   &.loading {
     overflow: hidden;

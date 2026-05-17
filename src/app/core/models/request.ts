@@ -24,12 +24,12 @@ export type UnredactRequestViewModel = UnredactRequest & {
 };
 
 export type EntityRequest = {
-  GSI_ALL_PK: string;
-  GSI_ALL_SK: string;
-  GSI_PENDING_PK: string;
-  GSI_PENDING_SK: string;
-  PK: string;
-  SK: string;
+  gsiAllPk: string;
+  gsiAllSk: string;
+  gsiPendingPk: string;
+  gsiPendingSk: string;
+  pk: string;
+  sk: string;
   accountId: string;
   createdAt: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -40,8 +40,8 @@ export type EntityRequest = {
   region: string;
   table: string;
   userId: string;
-  targetPK: string;
-  targetSK: string;
+  targetPk: string;
+  targetSk: string;
   comment?: string | null;
   rejectedBy?: RejectedBy;
   approvedBy?: ApprovedBy[];
@@ -69,8 +69,8 @@ export type UserEntityRequestsResponse = EntityRequestsResponse<UserEntityReques
 export type CreateEntityRequestPayload = {
   duration: number;
   table: string;
-  targetPK: string;
-  targetSK?: string;
+  targetPk: string;
+  targetSk?: string;
   reason: string;
   issueKey: string;
   accountId: string;

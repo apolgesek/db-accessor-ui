@@ -38,9 +38,9 @@ type RulesetRuleFormType = {
 
 type RulesetFormType = {
   table: FormControl<string | null>;
-  targetPK: FormControl<string | null>;
+  targetPk: FormControl<string | null>;
   pkOperator: FormControl<RulesetOperator | null>;
-  targetSK: FormControl<string | null>;
+  targetSk: FormControl<string | null>;
   skOperator: FormControl<RulesetOperator | null>;
   accountId: FormControl<string | null>;
   region: FormControl<string | null>;
@@ -109,11 +109,11 @@ export class NewRuleset implements OnInit {
 
     this.form = this.fb.group<RulesetFormType>({
       table: this.fb.control({ value: '', disabled: true }, { validators: [Validators.required] }),
-      targetPK: this.fb.control('', { validators: [Validators.required] }),
+      targetPk: this.fb.control('', { validators: [Validators.required] }),
       pkOperator: this.fb.control<RulesetOperator | null>(null, {
         validators: [Validators.required],
       }),
-      targetSK: this.fb.control({ value: '', disabled: true }),
+      targetSk: this.fb.control({ value: '', disabled: true }),
       skOperator: this.fb.control<RulesetOperator | null>({ value: null, disabled: true }),
       accountId: this.fb.control('', {
         validators: [Validators.required, Validators.pattern(/^\d{12}$/)],
@@ -151,9 +151,9 @@ export class NewRuleset implements OnInit {
         if (this.isEditMode) return;
 
         this.form.controls.table.setValue(null);
-        this.form.controls.targetPK.setValue(null);
+        this.form.controls.targetPk.setValue(null);
         this.form.controls.pkOperator.setValue(null);
-        this.form.controls.targetSK.setValue(null);
+        this.form.controls.targetSk.setValue(null);
         this.form.controls.skOperator.setValue(null);
 
         if (account && region) {
@@ -172,7 +172,7 @@ export class NewRuleset implements OnInit {
         } else {
           this.tables = [];
           this.form.controls.table.disable();
-          this.form.controls.targetSK.disable();
+          this.form.controls.targetSk.disable();
           this.form.controls.skOperator.disable();
         }
       });
@@ -185,11 +185,11 @@ export class NewRuleset implements OnInit {
         this.activeRuleset = null;
         this.matchingScope = null;
         const info = this.tables.find((t) => t.name === v);
-        if (info?.sK) {
-          this.form.controls.targetSK.enable();
+        if (info?.sk) {
+          this.form.controls.targetSk.enable();
         } else {
-          this.form.controls.targetSK.setValue(null);
-          this.form.controls.targetSK.disable();
+          this.form.controls.targetSk.setValue(null);
+          this.form.controls.targetSk.disable();
           this.form.controls.skOperator.setValue(null);
           this.form.controls.skOperator.disable();
         }
@@ -214,7 +214,7 @@ export class NewRuleset implements OnInit {
         this.tryPrepopulateFromScope();
       });
 
-    this.form.controls.targetPK.valueChanges
+    this.form.controls.targetPk.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.tryPrepopulateFromScope());
 
@@ -226,7 +226,7 @@ export class NewRuleset implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.tryPrepopulateFromScope());
 
-    this.form.controls.targetSK.valueChanges
+    this.form.controls.targetSk.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((value) => {
         if (value && value.trim()) {
@@ -349,13 +349,13 @@ export class NewRuleset implements OnInit {
       return;
     }
 
-    const { targetPK, pkOperator, targetSK, skOperator } = this.form.getRawValue();
-    if (!targetPK?.trim() || !pkOperator) {
+    const { targetPk, pkOperator, targetSk, skOperator } = this.form.getRawValue();
+    if (!targetPk?.trim() || !pkOperator) {
       this.matchingScope = null;
       return;
     }
 
-    const sk = targetSK?.trim() || null;
+    const sk = targetSk?.trim() || null;
     if (sk && !skOperator) {
       this.matchingScope = null;
       return;
@@ -363,9 +363,9 @@ export class NewRuleset implements OnInit {
 
     this.matchingScope =
       Object.values(this.activeRuleset.activeRulesets).find((scope) => {
-        const pkMatch = scope.targetPK === targetPK.trim() && scope.pkOperator === pkOperator;
+        const pkMatch = scope.targetPk === targetPk.trim() && scope.pkOperator === pkOperator;
         if (!pkMatch) return false;
-        return sk ? scope.targetSK === sk && scope.skOperator === skOperator : !scope.targetSK;
+        return sk ? scope.targetSk === sk && scope.skOperator === skOperator : !scope.targetSk;
       }) ?? null;
 
     if (
@@ -373,9 +373,9 @@ export class NewRuleset implements OnInit {
       this.form.controls.accountId.valid &&
       this.form.controls.region.valid &&
       this.form.controls.table.valid &&
-      this.form.controls.targetPK.valid &&
+      this.form.controls.targetPk.valid &&
       this.form.controls.pkOperator.valid &&
-      this.form.controls.targetSK.valid &&
+      this.form.controls.targetSk.valid &&
       this.form.controls.skOperator.valid
     ) {
       this.form.controls.ruleset.enable();
@@ -387,9 +387,9 @@ export class NewRuleset implements OnInit {
   private populateEditForm(scope: ActiveRulesetScope): void {
     this.form.patchValue(
       {
-        targetPK: scope.targetPK,
+        targetPk: scope.targetPk,
         pkOperator: scope.pkOperator ?? null,
-        targetSK: scope.targetSK ?? null,
+        targetSk: scope.targetSk ?? null,
         skOperator: scope.skOperator ?? null,
         version: scope.version ?? 0,
       },
@@ -412,9 +412,9 @@ export class NewRuleset implements OnInit {
     this.form.controls.accountId.disable({ emitEvent: false });
     this.form.controls.region.disable({ emitEvent: false });
     this.form.controls.table.disable({ emitEvent: false });
-    this.form.controls.targetPK.disable({ emitEvent: false });
+    this.form.controls.targetPk.disable({ emitEvent: false });
     this.form.controls.pkOperator.disable({ emitEvent: false });
-    this.form.controls.targetSK.disable({ emitEvent: false });
+    this.form.controls.targetSk.disable({ emitEvent: false });
     this.form.controls.skOperator.disable({ emitEvent: false });
   }
 
@@ -457,7 +457,7 @@ export class NewRuleset implements OnInit {
     }
 
     const value = this.form.getRawValue();
-    const targetSK = value.targetSK?.trim() ?? '';
+    const targetSk = value.targetSk?.trim() ?? '';
 
     const payload: CreateRulesetRequestPayload = {
       accountId: value.accountId ?? '',
@@ -466,13 +466,13 @@ export class NewRuleset implements OnInit {
       ruleset: value.ruleset.map((rule) => ({
         path: rule.path?.trim() ?? '',
       })),
-      targetPK: value.targetPK?.trim() ?? '',
+      targetPk: value.targetPk?.trim() ?? '',
       pkOperator: value.pkOperator ?? 'EQUALS',
       version: value.version ?? 0,
     };
 
-    if (targetSK) {
-      payload.targetSK = targetSK;
+    if (targetSk) {
+      payload.targetSk = targetSk;
       if (value.skOperator) {
         payload.skOperator = value.skOperator;
       }

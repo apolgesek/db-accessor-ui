@@ -71,7 +71,7 @@ export class MyRequests implements OnInit {
         progressPercent: progress.percent,
         progressLabel: progress.label,
         isExpired: progress.isExpired,
-        urlId: base64urlEncode(item.SK),
+        urlId: base64urlEncode(item.sk),
       };
     });
   }
@@ -81,18 +81,18 @@ export class MyRequests implements OnInit {
       this.expandSet.add(id);
     } else {
       this.expandSet.delete(id);
-      const item = this.requests.items.find((x) => x.SK === id);
+      const item = this.requests.items.find((x) => x.sk === id);
       item?.unredactRequests?.forEach((x) => (x.showDetails = false));
     }
   }
 
   expandAll() {
-    this.requests.items.forEach((item) => this.expandSet.add(item.SK));
+    this.requests.items.forEach((item) => this.expandSet.add(item.sk));
   }
 
   collapseAll() {
     this.requests.items.forEach((item) => {
-      this.onExpandChange(item.SK, false);
+      this.onExpandChange(item.sk, false);
     });
   }
 

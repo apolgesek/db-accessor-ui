@@ -16,6 +16,6 @@ export type AwsAccountsResponse = {
 
 export type DynamoDbTable = {
   name: string;
-  pK: string;
-  sK?: string;
+  pk: string;
+  sk?: string;
 };

@@ -64,7 +64,7 @@ export class Requests implements OnInit {
       this.expandSet.add(id);
     } else {
       this.expandSet.delete(id);
-      const item = this.requests.find((x) => x.SK === id);
+      const item = this.requests.find((x) => x.sk === id);
       if (item?.status === 'PENDING' && item?.comment) {
         item.comment = null;
       }
@@ -74,12 +74,12 @@ export class Requests implements OnInit {
   }
 
   expandAll() {
-    this.requests.forEach((item: EntityRequestViewModel) => this.expandSet.add(item.SK));
+    this.requests.forEach((item: EntityRequestViewModel) => this.expandSet.add(item.sk));
   }
 
   collapseAll() {
     this.requests.forEach((req) => {
-      this.onExpandChange(req.SK, false);
+      this.onExpandChange(req.sk, false);
     });
   }
 
@@ -96,10 +96,10 @@ export class Requests implements OnInit {
   approve(request: EntityRequest) {
     this.spinnerService.setIsLoading(true);
     this.adminHttp
-      .approveRequest(request.PK, request.SK, request.comment)
+      .approveRequest(request.pk, request.sk, request.comment)
       .pipe(finalize(() => this.spinnerService.setIsLoading(false)))
       .subscribe((item) => {
-        const idx = this.requests.findIndex((x) => x.PK === request.PK && x.SK === request.SK);
+        const idx = this.requests.findIndex((x) => x.pk === request.pk && x.sk === request.sk);
         if (idx >= 0) {
           this.requests[idx] = this.mapItem(item);
         }
@@ -110,10 +110,10 @@ export class Requests implements OnInit {
   reject(request: EntityRequest) {
     this.spinnerService.setIsLoading(true);
     this.adminHttp
-      .rejectRequest(request.PK, request.SK, request.comment ?? '')
+      .rejectRequest(request.pk, request.sk, request.comment ?? '')
       .pipe(finalize(() => this.spinnerService.setIsLoading(false)))
       .subscribe((item) => {
-        const idx = this.requests.findIndex((x) => x.PK === request.PK && x.SK === request.SK);
+        const idx = this.requests.findIndex((x) => x.pk === request.pk && x.sk === request.sk);
         if (idx >= 0) {
           this.requests[idx] = this.mapItem(item);
         }
