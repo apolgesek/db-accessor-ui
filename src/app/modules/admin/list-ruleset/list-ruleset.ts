@@ -18,9 +18,9 @@ import { AdminHttp } from '../services/admin-http';
 
 type ScopeRow = {
   scopeKey: string;
-  targetPK: string;
+  targetPk: string;
   pkOperator?: 'BEGINS_WITH' | 'EQUALS';
-  targetSK?: string;
+  targetSk?: string;
   skOperator?: 'BEGINS_WITH' | 'EQUALS';
   paths: string[];
   updatedAt: string;
@@ -97,9 +97,9 @@ export class ListRuleset implements OnInit {
           this.allScopes = Object.entries(res.activeRulesets).map(
             ([scopeKey, scope]: [string, ActiveRulesetScope]) => ({
               scopeKey,
-              targetPK: scope.targetPK,
+              targetPk: scope.targetPk,
               pkOperator: scope.pkOperator,
-              targetSK: scope.targetSK,
+              targetSk: scope.targetSk,
               skOperator: scope.skOperator,
               paths: scope.ruleset.map((r) => r.path),
               updatedAt: scope.updatedAt,

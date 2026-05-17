@@ -50,27 +50,89 @@
   <nz-layout>
     <nz-content>
       @if (isAuthenticated) {
-        <div style="display: flex; align-items: center; justify-content: end; margin-bottom: 1rem">
-          <div style="margin-right: 1rem; display: flex; gap: 0.5rem">
-            <nz-icon nzType="user"></nz-icon
-            ><span style="font-weight: 600" [ngClass]="{ admin: isAdmin }">{{ username }}</span>
+        <div class="app__topbar">
+          <button
+            class="app__notification-button"
+            nz-button
+            nzType="text"
+            nz-dropdown
+            nzTrigger="click"
+            [nzDropdownMenu]="notificationsMenu"
+            type="button"
+            aria-label="Notifications"
+          >
+            <nz-badge [nzCount]="notificationCount()" [nzOverflowCount]="99" nzSize="small">
+              <nz-icon nzType="bell"></nz-icon>
+            </nz-badge>
+          </button>
+          <nz-dropdown-menu #notificationsMenu="nzDropdownMenu">
+            <ul nz-menu class="app__notifications-menu">
+              @if (latestNotifications().length) {
+                @for (notification of latestNotifications(); track notification.id) {
+                  <li
+                    nz-menu-item
+                    class="app__notification-menu-item"
+                    routerLink="/notifications"
+                  >
+                    <div class="app__notification-summary">
+                      <div class="app__notification-summary-header">
+                        <span
+                          class="app__notification-status"
+                          [ngClass]="{
+                            approved: notification.status === 'APPROVED',
+                            rejected: notification.status === 'REJECTED'
+                          }"
+                        >
+                          {{ notification.status === 'APPROVED' ? 'Approved' : 'Rejected' }}
+                        </span>
+                        <span class="app__notification-time">
+                          {{ notification.createdAt | date: 'dd/MM/yyyy HH:mm' }}
+                        </span>
+                      </div>
+                      <div class="app__notification-title">
+                        {{ notification.targetPk }}
+                        @if (notification.targetSk) {
+                          / {{ notification.targetSk }}
+                        }
+                      </div>
+                      <div class="app__notification-meta">
+                        {{ notification.table }} &middot; {{ notification.accountId }} &middot;
+                        {{ notification.region }}
+                      </div>
+                    </div>
+                  </li>
+                }
+              } @else {
+                <li nz-menu-item nzDisabled class="app__notifications-empty">No notifications</li>
+              }
+              <li nz-menu-divider></li>
+              <li nz-menu-item class="app__notifications-footer">
+                <a routerLink="/notifications">See all notifications</a>
+              </li>
+            </ul>
+          </nz-dropdown-menu>
+          <div class="app__user-summary">
+            <nz-icon nzType="user"></nz-icon>
+            <span class="app__username" [ngClass]="{ admin: isAdmin }">{{ username }}</span>
           </div>
           <button nz-button nzType="default" (click)="logout()">Logout</button>
         </div>
       }
-      <div class="app__inner-content" [ngClass]="{ loading: isLoading() && !skeletonType }">
-        @if (isLoading() && skeletonType) {
-          @switch (skeletonType) {
-            @case (1) {
-              <app-loading-skeleton-table></app-loading-skeleton-table>
+      <div class="app__outer-content">
+        <div class="app__inner-content" [ngClass]="{ loading: isLoading() && !skeletonType }">
+          @if (isLoading() && skeletonType) {
+            @switch (skeletonType) {
+              @case (1) {
+                <app-loading-skeleton-table></app-loading-skeleton-table>
+              }
+              @default {
+                <app-loading-skeleton-default></app-loading-skeleton-default>
+              }
             }
-            @default {
-              <app-loading-skeleton-default></app-loading-skeleton-default>
-            }
+          } @else {
+            <router-outlet></router-outlet>
           }
-        } @else {
-          <router-outlet></router-outlet>
-        }
+        </div>
       </div>
     </nz-content>
   </nz-layout>

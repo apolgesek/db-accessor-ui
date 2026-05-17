@@ -5,5 +5,6 @@ import { Injectable, signal } from '@angular/core';
 })
 export class ConfigService {
   apiUrl = signal('');
+  webSocketUrl = signal('');
   version = signal('');
 }

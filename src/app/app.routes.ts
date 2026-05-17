@@ -21,4 +21,10 @@ export const routes: Routes = [
     canMatch: [canMatchAuthenticated, canMatchAdmin],
     loadChildren: () => import('./modules/admin/admin.routes').then((m) => m.ADMIN_ROUTES),
   },
+  {
+    path: 'notifications',
+    canMatch: [canMatchAuthenticated],
+    loadChildren: () =>
+      import('./modules/notifications/notifications.routes').then((m) => m.NOTIFICATIONS_ROUTES),
+  },
 ];

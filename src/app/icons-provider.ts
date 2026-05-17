@@ -13,6 +13,7 @@ import {
   UpOutline,
   ClockCircleFill,
   UnorderedListOutline,
+  BellOutline,
 } from '@ant-design/icons-angular/icons';
 
 export const icons = [
@@ -30,4 +31,5 @@ export const icons = [
   UpOutline,
   ClockCircleFill,
   UnorderedListOutline,
+  BellOutline,
 ];

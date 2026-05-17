@@ -28,20 +28,20 @@
     @for (data of basicTable.data; track data) {
       <tr>
         <td
-          [nzExpand]="expandSet.has(data.SK)"
-          (nzExpandChange)="onExpandChange(data.SK, $event)"
+          [nzExpand]="expandSet.has(data.sk)"
+          (nzExpandChange)="onExpandChange(data.sk, $event)"
         ></td>
         <td>
           {{ data.userId }}
         </td>
         <td>{{ data.table }}</td>
-        <td>{{ data.targetPK }}</td>
-        <td>{{ data.targetSK }}</td>
+        <td>{{ data.targetPk }}</td>
+        <td>{{ data.targetSk }}</td>
         <td>{{ data.duration }} h</td>
         <td [class]="data.status.toLowerCase()">{{ data.status }}</td>
         <td>{{ data.createdAt | date: 'dd/MM/yyyy HH:mm:ss' }}</td>
       </tr>
-      <tr [nzExpand]="expandSet.has(data.SK)">
+      <tr [nzExpand]="expandSet.has(data.sk)">
         <div nz-row style="margin-bottom: 1rem">
           <div nz-col nzSpan="4"><strong>Account:</strong> {{ data.accountId }}</div>
           <div nz-col nzSpan="4"><strong>Region:</strong> {{ data.region }}</div>

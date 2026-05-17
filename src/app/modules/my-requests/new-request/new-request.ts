@@ -30,8 +30,8 @@ import {
 type RequestFormType = {
   duration: FormControl<number | null>;
   table: FormControl<string | null>;
-  targetPK: FormControl<string | null>;
-  targetSK: FormControl<string | null>;
+  targetPk: FormControl<string | null>;
+  targetSk: FormControl<string | null>;
   reason: FormControl<string | null>;
   issueKey: FormControl<string | null>;
   accountId: FormControl<string | null>;
@@ -70,7 +70,7 @@ export class NewRequest implements OnInit {
 
   get selectedTableHasSortKey(): boolean {
     const tableName = this.form?.controls.table.value;
-    return !!this.tables.find((table) => table.name === tableName)?.sK;
+    return !!this.tables.find((table) => table.name === tableName)?.sk;
   }
 
   ngOnInit(): void {
@@ -79,8 +79,8 @@ export class NewRequest implements OnInit {
         validators: [Validators.required, Validators.min(1), Validators.max(24)],
       }),
       table: this.fb.control({ value: '', disabled: true }, { validators: [Validators.required] }),
-      targetPK: this.fb.control('', { validators: [Validators.required] }),
-      targetSK: this.fb.control({ value: '', disabled: true }),
+      targetPk: this.fb.control('', { validators: [Validators.required] }),
+      targetSk: this.fb.control({ value: '', disabled: true }),
       reason: this.fb.control('', {
         validators: [Validators.required, Validators.maxLength(1024)],
       }),
@@ -115,8 +115,8 @@ export class NewRequest implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(([account, region]) => {
         this.form.controls.table.setValue(null);
-        this.form.controls.targetPK.setValue(null);
-        this.form.controls.targetSK.setValue(null);
+        this.form.controls.targetPk.setValue(null);
+        this.form.controls.targetSk.setValue(null);
 
         if (account && region) {
           this.spinnerService.setIsLoading(true);
@@ -138,15 +138,15 @@ export class NewRequest implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((v) => {
         const info = this.tables.find((t) => t.name === v);
-        if (info?.sK) {
-          this.form.controls.targetSK.enable();
-          this.form.controls.targetSK.setValidators([Validators.required]);
+        if (info?.sk) {
+          this.form.controls.targetSk.enable();
+          this.form.controls.targetSk.setValidators([Validators.required]);
         } else {
-          this.form.controls.targetSK.setValue(null);
-          this.form.controls.targetSK.clearValidators();
-          this.form.controls.targetSK.disable();
+          this.form.controls.targetSk.setValue(null);
+          this.form.controls.targetSk.clearValidators();
+          this.form.controls.targetSk.disable();
         }
-        this.form.controls.targetSK.updateValueAndValidity();
+        this.form.controls.targetSk.updateValueAndValidity();
       });
   }
 
@@ -184,16 +184,16 @@ export class NewRequest implements OnInit {
     const payload: CreateEntityRequestPayload = {
       duration: value.duration ?? 0,
       table: value.table ?? '',
-      targetPK: value.targetPK?.trim() ?? '',
+      targetPk: value.targetPk?.trim() ?? '',
       reason: value.reason?.trim() ?? '',
       issueKey: value.issueKey?.trim().toUpperCase() ?? '',
       accountId: value.accountId ?? '',
       region: value.region ?? '',
     };
 
-    const targetSK = value.targetSK?.trim();
-    if (targetSK) {
-      payload.targetSK = targetSK;
+    const targetSk = value.targetSk?.trim();
+    if (targetSk) {
+      payload.targetSk = targetSk;
     }
 
     return payload;

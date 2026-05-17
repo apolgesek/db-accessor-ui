@@ -80,7 +80,7 @@ export class Record implements OnInit, AfterViewInit {
 
   form = this.fb.group({
     userName: this.fb.control<string | null>(null, [Validators.required]),
-    tableName: this.fb.control<string | null>(null, [Validators.required]),
+    table: this.fb.control<string | null>(null, [Validators.required]),
     partitionKey: this.fb.control<string | null>(null, [Validators.required]),
     duration: this.fb.control<number | null>(null, [Validators.required]),
     agree: this.fb.control<boolean | null>(null, [Validators.requiredTrue]),

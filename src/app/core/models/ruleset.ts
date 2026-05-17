@@ -5,9 +5,9 @@ export type RulesetRule = {
 };
 
 export type ActiveRulesetScope = {
-  targetPK: string;
+  targetPk: string;
   pkOperator?: RulesetOperator;
-  targetSK?: string;
+  targetSk?: string;
   skOperator?: RulesetOperator;
   ruleset: RulesetRule[];
   updatedAt: string;
@@ -27,9 +27,9 @@ export type CreateRulesetRequestPayload = {
   region: string;
   table: string;
   ruleset: RulesetRule[];
-  targetPK: string;
+  targetPk: string;
   pkOperator: RulesetOperator;
-  targetSK?: string;
+  targetSk?: string;
   skOperator?: RulesetOperator;
   version?: number;
 };

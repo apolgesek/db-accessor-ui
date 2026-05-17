@@ -35,25 +35,25 @@ export class AdminHttp {
   }
 
   approveRequest(
-    PK: EntityRequest['PK'],
-    SK: EntityRequest['SK'],
+    pk: EntityRequest['pk'],
+    sk: EntityRequest['sk'],
     comment?: string | null,
   ): Observable<RequestDecisionResponse> {
     return this.http.put<RequestDecisionResponse>(`${this.baseUrl}/admin/approve-request`, {
-      PK,
-      SK,
+      pk,
+      sk,
       comment,
     });
   }
 
   rejectRequest(
-    PK: EntityRequest['PK'],
-    SK: EntityRequest['SK'],
+    pk: EntityRequest['pk'],
+    sk: EntityRequest['sk'],
     comment: string,
   ): Observable<RequestDecisionResponse> {
     return this.http.put<RequestDecisionResponse>(`${this.baseUrl}/admin/reject-request`, {
-      PK,
-      SK,
+      pk,
+      sk,
       comment,
     });
   }
