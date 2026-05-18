@@ -120,7 +120,7 @@ export class NewRuleset implements OnInit {
       }),
       region: this.fb.control('', { validators: [Validators.required] }),
       ruleset: this.fb.array([this.createRuleForm()], { validators: [Validators.required] }),
-      version: this.fb.control(0),
+      version: this.fb.control(null),
     });
 
     if (this.isEditMode) {
@@ -391,7 +391,7 @@ export class NewRuleset implements OnInit {
         pkOperator: scope.pkOperator ?? null,
         targetSk: scope.targetSk ?? null,
         skOperator: scope.skOperator ?? null,
-        version: scope.version ?? 0,
+        version: scope.version ?? null,
       },
       { emitEvent: false },
     );
@@ -468,8 +468,11 @@ export class NewRuleset implements OnInit {
       })),
       targetPk: value.targetPk?.trim() ?? '',
       pkOperator: value.pkOperator ?? 'EQUALS',
-      version: value.version ?? 0,
     };
+
+    if (value.version) {
+      payload.version = value.version;
+    }
 
     if (targetSk) {
       payload.targetSk = targetSk;
