@@ -1,5 +1,5 @@
 {
-  "version": "v0.7.0",
+  "version": "v0.7.1",
   "apiUrl": "https://iboyojye6k.execute-api.eu-central-1.amazonaws.com/dev/",
   "webSocketUrl": "wss://tweeezfpj9.execute-api.eu-central-1.amazonaws.com/dev"
 }
