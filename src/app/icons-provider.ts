@@ -14,6 +14,8 @@ import {
   ClockCircleFill,
   UnorderedListOutline,
   BellOutline,
+  AmazonOutline,
+  ArrowRightOutline,
 } from '@ant-design/icons-angular/icons';
 
 export const icons = [
@@ -32,4 +34,6 @@ export const icons = [
   ClockCircleFill,
   UnorderedListOutline,
   BellOutline,
+  AmazonOutline,
+  ArrowRightOutline,
 ];

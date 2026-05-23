@@ -15,6 +15,7 @@ import { LoadingSkeletonTable } from './core/components/loading-skeleton-table/l
 import { RouterEventsService } from './core/services/router-events.service';
 import { LoadingSkeletonDefault } from './core/components/loading-skeleton-default/loading-skeleton-default';
 import { NotificationService } from './core/services/notification.service';
+import { LastSignedInAccountService } from './auth/last-signed-in-account.service';
 
 @Component({
   selector: 'app-root',
@@ -42,6 +43,7 @@ export class App implements OnInit, OnDestroy {
   private readonly spinnerService = inject(SpinnerService);
   private readonly routerEventsService = inject(RouterEventsService);
   private readonly notificationService = inject(NotificationService);
+  private readonly lastSignedInAccountService = inject(LastSignedInAccountService);
 
   appVersion = this.configService.version;
   notifications = this.notificationService.notifications;
@@ -68,6 +70,10 @@ export class App implements OnInit, OnDestroy {
     return this.authService.username;
   }
 
+  get email() {
+    return this.authService.email;
+  }
+
   get isAdmin() {
     return this.authService.isAdmin();
   }
@@ -83,8 +89,14 @@ export class App implements OnInit, OnDestroy {
   logout(): void {
     this.notificationService.closeConnection();
 
-    if (window.sessionStorage) {
-      window.sessionStorage.clear();
+    const lastSignedInAccount = {
+      username: this.username,
+      email: this.email,
+    };
+
+    if (window.localStorage) {
+      window.localStorage.clear();
+      this.lastSignedInAccountService.set(lastSignedInAccount);
     }
 
     window.location.href =

@@ -3,4 +3,18 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  min-height: 280px;
+}
+
+.login__account-card {
+  width: min(360px, 100%);
+  text-align: center;
+}
+
+.login__account-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 1rem 0 1.5rem;
+  color: rgba(0, 0, 0, 0.65);
 }
