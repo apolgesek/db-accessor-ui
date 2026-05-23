@@ -69,7 +69,7 @@ nz-layout {
 }
 
 nz-content {
-  margin: 24px;
+  padding: 24px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -186,9 +186,12 @@ nz-content {
 
 .app__inner-content {
   padding: 24px;
-  background: #fff;
   overflow: auto;
   height: 100%;
+
+  &.signed-in {
+    background: #fff;
+  }
 
   &.loading {
     overflow: hidden;

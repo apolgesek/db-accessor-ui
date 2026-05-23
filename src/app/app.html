@@ -69,18 +69,14 @@
             <ul nz-menu class="app__notifications-menu">
               @if (latestNotifications().length) {
                 @for (notification of latestNotifications(); track notification.id) {
-                  <li
-                    nz-menu-item
-                    class="app__notification-menu-item"
-                    routerLink="/notifications"
-                  >
+                  <li nz-menu-item class="app__notification-menu-item" routerLink="/notifications">
                     <div class="app__notification-summary">
                       <div class="app__notification-summary-header">
                         <span
                           class="app__notification-status"
                           [ngClass]="{
                             approved: notification.status === 'APPROVED',
-                            rejected: notification.status === 'REJECTED'
+                            rejected: notification.status === 'REJECTED',
                           }"
                         >
                           {{ notification.status === 'APPROVED' ? 'Approved' : 'Rejected' }}
@@ -119,7 +115,10 @@
         </div>
       }
       <div class="app__outer-content">
-        <div class="app__inner-content" [ngClass]="{ loading: isLoading() && !skeletonType }">
+        <div
+          class="app__inner-content"
+          [ngClass]="{ loading: isLoading() && !skeletonType, 'signed-in': isAuthenticated }"
+        >
           @if (isLoading() && skeletonType) {
             @switch (skeletonType) {
               @case (1) {

@@ -26,6 +26,7 @@ import { filter, forkJoin, map, of, switchMap, take, tap } from 'rxjs';
 import { routes } from './app.routes';
 import { authConfig } from './auth/auth.config';
 import { LocalStorageService } from './auth/local-storage.service';
+import { LastSignedInAccountService } from './auth/last-signed-in-account.service';
 import { AppConfig, ConfigService } from './core';
 import { BASE_URL } from './core/base-url';
 import { icons } from './icons-provider';
@@ -73,6 +74,7 @@ export const appConfig: ApplicationConfig = {
       const configService = inject(ConfigService);
       const oidcSecurityService = inject(OidcSecurityService);
       const authService = inject(AuthService);
+      const lastSignedInAccountService = inject(LastSignedInAccountService);
 
       const auth$ = oidcSecurityService.checkAuth().pipe(
         take(1),
@@ -87,11 +89,15 @@ export const appConfig: ApplicationConfig = {
         }),
         tap(({ isAuthenticated, userData, idTokenPayload }) => {
           authService.setAuthData(isAuthenticated, userData, idTokenPayload);
+          if (isAuthenticated) {
+            lastSignedInAccountService.clearIfSignInCompleted();
+          }
         }),
       );
 
       const config$ = http.get<AppConfig>('config.json').pipe(
         tap((config: AppConfig) => {
+          configService.storagePrefix.set(config.appPrefix);
           configService.apiUrl.set(config.apiUrl);
           configService.version.set(config.version);
           configService.webSocketUrl.set(config.webSocketUrl);

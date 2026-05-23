@@ -7,4 +7,5 @@ export class ConfigService {
   apiUrl = signal('');
   webSocketUrl = signal('');
   version = signal('');
+  storagePrefix = signal('');
 }
