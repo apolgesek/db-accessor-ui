@@ -20,6 +20,8 @@ export class DbAccessorUiStack extends cdk.Stack {
       versioned: true,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       enforceSSL: true,
+      removalPolicy: props.stage === 'dev' ? cdk.RemovalPolicy.DESTROY : cdk.RemovalPolicy.RETAIN,
+      autoDeleteObjects: props.stage === 'dev',
     });
 
     new ssm.StringParameter(this, 'SiteBucketNameParameter', {
