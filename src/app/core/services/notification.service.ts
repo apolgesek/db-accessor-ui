@@ -62,7 +62,9 @@ export class NotificationService {
   private token = toSignal(this.oidcService.getIdToken(), { injector: this.injector });
 
   notifications = this.notificationState.asReadonly();
-  unreadNotifications = computed(() => this.notificationState().filter((notification) => !notification.readAt));
+  unreadNotifications = computed(() =>
+    this.notificationState().filter((notification) => !notification.readAt),
+  );
   notificationCount = computed(() => this.unreadNotificationCountState());
 
   loadNotifications(): void {
@@ -104,7 +106,9 @@ export class NotificationService {
 
     const readAt = new Date().toISOString();
     this.markNotificationsReadLocally(unreadNotificationIds, readAt);
-    this.unreadNotificationCountState.update((count) => Math.max(0, count - unreadNotificationIds.size));
+    this.unreadNotificationCountState.update((count) =>
+      Math.max(0, count - unreadNotificationIds.size),
+    );
 
     return this.http
       .post<MarkNotificationsReadResponse>(`${this.baseUrl}/notifications/read`, {
@@ -191,7 +195,9 @@ export class NotificationService {
   }
 
   private applyUnreadCountChange(notification: RequestNotification): void {
-    const existingNotification = this.notificationState().find((item) => item.id === notification.id);
+    const existingNotification = this.notificationState().find(
+      (item) => item.id === notification.id,
+    );
     const wasUnread = existingNotification ? !existingNotification.readAt : false;
     const isUnread = !notification.readAt;
 
@@ -219,7 +225,9 @@ export class NotificationService {
   private markNotificationsReadLocally(notificationIds: Set<string>, readAt: string): void {
     this.notificationState.update((notifications) =>
       notifications.map((notification) =>
-        notificationIds.has(notification.id) ? { ...notification, readAt: notification.readAt ?? readAt } : notification,
+        notificationIds.has(notification.id)
+          ? { ...notification, readAt: notification.readAt ?? readAt }
+          : notification,
       ),
     );
   }
@@ -227,7 +235,9 @@ export class NotificationService {
   private markNotificationsUnreadLocally(notificationIds: Set<string>): void {
     this.notificationState.update((notifications) =>
       notifications.map((notification) =>
-        notificationIds.has(notification.id) ? { ...notification, readAt: undefined } : notification,
+        notificationIds.has(notification.id)
+          ? { ...notification, readAt: undefined }
+          : notification,
       ),
     );
   }

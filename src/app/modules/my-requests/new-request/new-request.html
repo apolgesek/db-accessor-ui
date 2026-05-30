@@ -98,7 +98,12 @@
   <nz-form-item>
     <nz-form-label nzRequired>Jira issue key</nz-form-label>
     <nz-form-control [nzErrorTip]="issueKeyErrTpl">
-      <input nz-input formControlName="issueKey" placeholder="FEYES-123" style="text-transform: uppercase" />
+      <input
+        nz-input
+        formControlName="issueKey"
+        placeholder="FEYES-123"
+        style="text-transform: uppercase"
+      />
       <ng-template #issueKeyErrTpl let-control>
         @if (control.hasError('required')) {
           Jira issue key is required.

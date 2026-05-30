@@ -2,10 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { BASE_URL } from '../../../core';
-import {
-  CreateEntityRequestPayload,
-  UserEntityRequestsResponse,
-} from '../../../core/models';
+import { CreateEntityRequestPayload, UserEntityRequestsResponse } from '../../../core/models';
 
 @Injectable({
   providedIn: 'root',
