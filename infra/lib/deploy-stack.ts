@@ -19,6 +19,12 @@ export class DbAccessorUiDeployStack extends cdk.Stack {
     const projectName = `${props.projectName}-${props.stage}`;
     const qualifier = 'hnb659fds';
     const oidcProviderArn = `arn:aws:iam::${stack.account}:oidc-provider/token.actions.githubusercontent.com`;
+    const ssmParameterArn = (parameterName: string) =>
+      stack.formatArn({
+        service: 'ssm',
+        resource: 'parameter',
+        resourceName: parameterName.replace(/^\//, ''),
+      });
     const bucket = s3.Bucket.fromBucketName(
       this,
       `${projectName}-ui-bucket`,
@@ -80,16 +86,8 @@ export class DbAccessorUiDeployStack extends cdk.Stack {
         effect: iam.Effect.ALLOW,
         actions: ['ssm:GetParameter'],
         resources: [
-          stack.formatArn({
-            service: 'ssm',
-            resource: 'parameter',
-            resourceName: `/db-accessor-ui-${props.stage}/static-site/bucket-name`,
-          }),
-          stack.formatArn({
-            service: 'ssm',
-            resource: 'parameter',
-            resourceName: `/db-accessor-infra-${props.stage}/cloudfront/distribution-id`,
-          }),
+          ssmParameterArn(`/db-accessor-ui-${props.stage}/static-site/bucket-name`),
+          ssmParameterArn(`/db-accessor-infra-${props.stage}/cloudfront/distribution-id`),
         ],
       }),
     );
@@ -100,11 +98,7 @@ export class DbAccessorUiDeployStack extends cdk.Stack {
       description: 'Role assumed by GitHub Actions to run cdk diff/deploy for this app',
     });
 
-    const bootstrapVersionParamArn = stack.formatArn({
-      service: 'ssm',
-      resource: 'parameter',
-      resourceName: `/cdk-bootstrap/${qualifier}/version`,
-    });
+    const bootstrapVersionParamArn = ssmParameterArn(`/cdk-bootstrap/${qualifier}/version`);
 
     const filePublishingRoleArn = `arn:aws:iam::${stack.account}:role/cdk-${qualifier}-file-publishing-role-${stack.account}-${stack.region}`;
     const deployRoleArn = `arn:aws:iam::${stack.account}:role/cdk-${qualifier}-deploy-role-${stack.account}-${stack.region}`;

@@ -234,7 +234,11 @@ jobs:
           git push origin "${NEW_TAG}"
 
   build-deploy:
-    needs: [tag-release]
+    needs: [tag-release, cdk-deploy]
+    if: |
+      always()
+      && needs.tag-release.result == 'success'
+      && (needs.cdk-deploy.result == 'success' || needs.cdk-deploy.result == 'skipped')
     runs-on: ubuntu-latest
     environment: dev
 
