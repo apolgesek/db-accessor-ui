@@ -16,8 +16,6 @@ concurrency:
 env:
   STAGE: dev
   AWS_REGION: eu-central-1
-  S3_BUCKET: ${{ vars.S3_BUCKET }}
-  CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
   APP_DEPLOY_ROLE_TO_ASSUME_ARN: ${{ vars.APP_DEPLOY_ROLE_TO_ASSUME_ARN }}
   CDK_ROLE_TO_ASSUME_ARN: ${{ vars.CDK_ROLE_TO_ASSUME_ARN }}
 
@@ -50,7 +48,11 @@ jobs:
         with:
           filters: |
             infra:
+              - 'infra/bin/**'
               - 'infra/lib/**'
+              - 'infra/package.json'
+              - 'infra/package-lock.json'
+              - 'infra/tsconfig*.json'
 
   cdk-deploy:
     needs: [changes]
@@ -198,7 +200,7 @@ jobs:
         run: echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
   tag-release:
-    needs: [plan-tag, update-version-file]
+    needs: [changes, plan-tag, update-version-file]
     if: needs.changes.outputs.app == 'true'
     runs-on: ubuntu-latest
     outputs:
@@ -281,9 +283,28 @@ jobs:
           role-to-assume: ${{ env.APP_DEPLOY_ROLE_TO_ASSUME_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Resolve AWS deployment targets
+        id: targets
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BUCKET="$(aws ssm get-parameter \
+            --name "/db-accessor-ui-${STAGE}/static-site/bucket-name" \
+            --query "Parameter.Value" \
+            --output text)"
+
+          DISTRIBUTION_ID="$(aws ssm get-parameter \
+            --name "/db-accessor-infra-${STAGE}/cloudfront/distribution-id" \
+            --query "Parameter.Value" \
+            --output text 2>/dev/null || true)"
+
+          echo "bucket=${BUCKET}" >> "$GITHUB_OUTPUT"
+          echo "distribution_id=${DISTRIBUTION_ID}" >> "$GITHUB_OUTPUT"
+
       - name: Upload static assets (immutable)
         run: |
-          aws s3 sync "${{ steps.dist.outputs.dir }}/" "s3://${S3_BUCKET}/" \
+          aws s3 sync "${{ steps.dist.outputs.dir }}/" "s3://${{ steps.targets.outputs.bucket }}/" \
             --delete \
             --exclude "index.html" \
             --exclude "config.json" \
@@ -291,21 +312,27 @@ jobs:
 
       - name: Upload index.html (no-cache)
         run: |
-          aws s3 cp "${{ steps.dist.outputs.dir }}/index.html" "s3://${S3_BUCKET}/index.html" \
+          aws s3 cp "${{ steps.dist.outputs.dir }}/index.html" "s3://${{ steps.targets.outputs.bucket }}/index.html" \
             --cache-control "public, max-age=0, must-revalidate" \
             --content-type "text/html; charset=utf-8"
 
       - name: Upload config.json (no-cache)
         run: |
-          aws s3 cp "${{ steps.dist.outputs.dir }}/config.json" "s3://${S3_BUCKET}/config.json" \
+          aws s3 cp "${{ steps.dist.outputs.dir }}/config.json" "s3://${{ steps.targets.outputs.bucket }}/config.json" \
             --cache-control "public, max-age=0, must-revalidate" \
             --content-type "application/json; charset=utf-8"
 
       - name: Invalidate CloudFront
+        if: steps.targets.outputs.distribution_id != ''
         run: |
           aws cloudfront create-invalidation \
-            --distribution-id "${CLOUDFRONT_DISTRIBUTION_ID}" \
+            --distribution-id "${{ steps.targets.outputs.distribution_id }}" \
             --paths "/*"
+
+      - name: Skip CloudFront invalidation
+        if: steps.targets.outputs.distribution_id == ''
+        run: |
+          echo "CloudFront distribution SSM parameter is missing; skipped invalidation." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload build artifact for release
         if: ${{ success() }}
