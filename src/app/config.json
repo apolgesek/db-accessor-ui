@@ -1,6 +1,6 @@
 {
   "version": "v0.8.1",
-  "apiUrl": "https://iboyojye6k.execute-api.eu-central-1.amazonaws.com/dev/",
-  "webSocketUrl": "wss://tweeezfpj9.execute-api.eu-central-1.amazonaws.com/dev",
+  "apiUrl": "/api",
+  "webSocketUrl": "wss://ws.dev.4eyesdb.com",
   "storagePrefix": "db-accessor"
 }
