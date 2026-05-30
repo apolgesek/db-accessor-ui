@@ -39,5 +39,5 @@ module.exports = tseslint.config(
     rules: {
       '@angular-eslint/template/label-has-associated-control': 'off',
     },
-  }
+  },
 );

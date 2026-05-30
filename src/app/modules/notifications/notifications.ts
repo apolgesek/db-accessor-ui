@@ -1,14 +1,19 @@
 import { DatePipe, NgClass } from '@angular/common';
-import { AfterViewInit, Component, ElementRef, OnInit, ViewChild, inject, signal } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  OnInit,
+  ViewChild,
+  inject,
+  signal,
+} from '@angular/core';
 import { NzListModule } from 'ng-zorro-antd/list';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzTypographyModule } from 'ng-zorro-antd/typography';
 import { finalize, take } from 'rxjs';
-import {
-  NotificationService,
-  RequestNotification,
-} from '../../core/services/notification.service';
+import { NotificationService, RequestNotification } from '../../core/services/notification.service';
 
 const NOTIFICATIONS_PAGE_SIZE = 20;
 const SCROLL_LOAD_THRESHOLD_PX = 160;
