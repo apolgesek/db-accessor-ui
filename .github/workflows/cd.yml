@@ -48,6 +48,7 @@ jobs:
         with:
           filters: |
             infra:
+              - '.github/workflows/cd.yml'
               - 'infra/bin/**'
               - 'infra/lib/**'
               - 'infra/package.json'
@@ -148,8 +149,11 @@ jobs:
           echo "- Environment: dev" >> "$GITHUB_STEP_SUMMARY"
 
   update-config-file:
-    needs: [plan-tag]
-    if: needs.plan-tag.outputs.new_tag != ''
+    needs: [plan-tag, cdk-deploy]
+    if: |
+      always()
+      && needs.plan-tag.outputs.new_tag != ''
+      && (needs.cdk-deploy.result == 'success' || needs.cdk-deploy.result == 'skipped')
     runs-on: ubuntu-latest
     environment: dev
     outputs:
