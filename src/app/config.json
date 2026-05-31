@@ -2,5 +2,10 @@
   "version": "v0.8.3",
   "apiUrl": "/api",
   "webSocketUrl": "wss://ws.dev.4eyesdb.com",
-  "storagePrefix": "db-accessor"
+  "storagePrefix": "db-accessor",
+  "auth": {
+    "authority": "https://cognito-idp.eu-central-1.amazonaws.com/eu-central-1_6rLj50DRM",
+    "clientId": "6n5d5gru7c0ncf5npa0m5ls2n8",
+    "scope": "openid email profile"
+  }
 }

@@ -88,6 +88,8 @@ export class DbAccessorUiDeployStack extends cdk.Stack {
         resources: [
           ssmParameterArn(`/db-accessor-ui-${props.stage}/static-site/bucket-name`),
           ssmParameterArn(`/db-accessor-infra-${props.stage}/cloudfront/distribution-id`),
+          ssmParameterArn(`/db-accessor-${props.stage}/auth/authority`),
+          ssmParameterArn(`/db-accessor-${props.stage}/auth/client-id`),
         ],
       }),
     );

@@ -24,10 +24,9 @@ import { en_US, provideNzI18n } from 'ng-zorro-antd/i18n';
 import { provideNzIcons } from 'ng-zorro-antd/icon';
 import { filter, forkJoin, map, of, switchMap, take, tap } from 'rxjs';
 import { routes } from './app.routes';
-import { authConfig } from './auth/auth.config';
 import { LocalStorageService } from './auth/local-storage.service';
 import { LastSignedInAccountService } from './auth/last-signed-in-account.service';
-import { AppConfig, ConfigService } from './core';
+import { AppAuthConfig, AppConfig, ConfigService } from './core';
 import { BASE_URL } from './core/base-url';
 import { icons } from './icons-provider';
 import { AuthService } from './core/services/auth.service';
@@ -35,14 +34,25 @@ import { toObservable } from '@angular/core/rxjs-interop';
 import { RouterEventsService } from './core/services/router-events.service';
 
 const authFactory = (configService: ConfigService) => {
-  const obs$ = toObservable(configService.apiUrl).pipe(
-    filter((url) => url !== ''),
-    map(() => {
-      const config = authConfig.config as OpenIdConfiguration;
-      config.secureRoutes = [configService.apiUrl()];
-
-      return config;
-    }),
+  const obs$ = toObservable(configService.auth).pipe(
+    filter(
+      (authConfig): authConfig is AppAuthConfig =>
+        authConfig !== null && authConfig.authority !== '' && authConfig.clientId !== '',
+    ),
+    map(
+      (authConfig): OpenIdConfiguration => ({
+        authority: authConfig.authority,
+        redirectUrl: window.location.origin,
+        postLogoutRedirectUri: window.location.origin,
+        clientId: authConfig.clientId,
+        scope: authConfig.scope ?? 'openid email profile',
+        responseType: 'code',
+        silentRenew: true,
+        useRefreshToken: true,
+        renewTimeBeforeTokenExpiresInSeconds: 30,
+        secureRoutes: [configService.apiUrl()],
+      }),
+    ),
   );
 
   return new StsConfigHttpLoader(obs$);
@@ -97,10 +107,11 @@ export const appConfig: ApplicationConfig = {
 
       const config$ = http.get<AppConfig>('config.json').pipe(
         tap((config: AppConfig) => {
-          configService.storagePrefix.set(config.appPrefix);
           configService.apiUrl.set(config.apiUrl);
           configService.version.set(config.version);
           configService.webSocketUrl.set(config.webSocketUrl);
+          configService.storagePrefix.set(config.storagePrefix ?? '');
+          configService.auth.set(config.auth);
         }),
       );
 

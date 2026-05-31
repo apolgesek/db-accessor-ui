@@ -147,10 +147,11 @@ jobs:
           echo "- New tag: ${{ steps.next.outputs.new_tag }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- Environment: dev" >> "$GITHUB_STEP_SUMMARY"
 
-  update-version-file:
+  update-config-file:
     needs: [plan-tag]
     if: needs.plan-tag.outputs.new_tag != ''
     runs-on: ubuntu-latest
+    environment: dev
     outputs:
       commit_sha: ${{ steps.sha.outputs.commit_sha }}
 
@@ -160,34 +161,63 @@ jobs:
           fetch-depth: 0
           ssh-key: ${{ secrets.DEPLOY_KEY }}
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.APP_DEPLOY_ROLE_TO_ASSUME_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Resolve Cognito config
+        id: auth
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          AUTHORITY="$(aws ssm get-parameter \
+            --name "/db-accessor-${STAGE}/auth/authority" \
+            --query "Parameter.Value" \
+            --output text)"
+
+          CLIENT_ID="$(aws ssm get-parameter \
+            --name "/db-accessor-${STAGE}/auth/client-id" \
+            --query "Parameter.Value" \
+            --output text)"
+
+          echo "auth_authority=${AUTHORITY}" >> "$GITHUB_OUTPUT"
+          echo "auth_client_id=${CLIENT_ID}" >> "$GITHUB_OUTPUT"
+
       - name: Update config.json in src/app
         shell: bash
+        env:
+          NEW_TAG: ${{ needs.plan-tag.outputs.new_tag }}
+          AUTHORITY: ${{ steps.auth.outputs.auth_authority }}
+          CLIENT_ID: ${{ steps.auth.outputs.auth_client_id }}
         run: |
           set -euo pipefail
           mkdir -p src/app
 
-          NEW_TAG="${{ needs.plan-tag.outputs.new_tag }}"
           CFG="src/app/config.json"
 
-          if [ -f "$CFG" ]; then
-            # Update or insert "version" field while preserving other keys
-            node -e "
-              const fs=require('fs'); const p='$CFG';
-              const data=JSON.parse(fs.readFileSync(p,'utf8'));
-              data.version='${NEW_TAG}';
-              fs.writeFileSync(p, JSON.stringify(data, null, 2) + '\n');
-            "
-          else
-            # Create a minimal config with version
-            printf '{\n  "version": "%s"\n}\n' "${NEW_TAG}" > "$CFG"
-          fi
+          node -e "
+            const fs = require('fs');
+            const p = '$CFG';
+            const config = fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : {};
+            config.version = process.env.NEW_TAG;
+            config.auth = {
+              ...(config.auth ?? {}),
+              authority: process.env.AUTHORITY,
+              clientId: process.env.CLIENT_ID,
+              scope: config.auth?.scope ?? 'openid email profile',
+            };
+            fs.writeFileSync(p, JSON.stringify(config, null, 2) + '\n');
+          "
 
           git add "$CFG"
           git config user.name  "github-actions"
           git config user.email "<>"
           # Only commit if there are changes
           if ! git diff --cached --quiet; then
-            git commit -m "chore: update src/app/config.json to ${NEW_TAG}"
+            git commit -m "chore: update src/app/config.json for ${NEW_TAG}"
             # Push back to default branch (main)
             git push origin main
           else
@@ -200,7 +230,7 @@ jobs:
         run: echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
   tag-release:
-    needs: [changes, plan-tag, update-version-file]
+    needs: [changes, plan-tag, update-config-file]
     if: needs.changes.outputs.app == 'true'
     runs-on: ubuntu-latest
     outputs:
@@ -217,7 +247,7 @@ jobs:
         shell: bash
         env:
           NEW_TAG: ${{ needs.plan-tag.outputs.new_tag }}
-          TARGET_SHA: ${{ needs.update-version-file.outputs.commit_sha }}
+          TARGET_SHA: ${{ needs.update-config-file.outputs.commit_sha }}
         run: |
           set -euo pipefail
           git config user.name  "github-actions"
