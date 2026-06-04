@@ -51,6 +51,13 @@ const authFactory = (configService: ConfigService) => {
         useRefreshToken: true,
         renewTimeBeforeTokenExpiresInSeconds: 30,
         secureRoutes: [configService.apiUrl()],
+        ...(authConfig.identityProviderName
+          ? {
+              customParamsAuthRequest: {
+                identity_provider: authConfig.identityProviderName,
+              },
+            }
+          : {}),
       }),
     ),
   );
@@ -98,7 +105,12 @@ export const appConfig: ApplicationConfig = {
           return of({ isAuthenticated, userData, idTokenPayload: null });
         }),
         tap(({ isAuthenticated, userData, idTokenPayload }) => {
-          authService.setAuthData(isAuthenticated, userData, idTokenPayload);
+          authService.setAuthData(
+            isAuthenticated,
+            userData,
+            idTokenPayload,
+            configService.auth()?.identityProviderName,
+          );
           if (isAuthenticated) {
             lastSignedInAccountService.clearIfSignInCompleted();
           }

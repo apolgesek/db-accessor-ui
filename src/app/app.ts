@@ -16,6 +16,7 @@ import { RouterEventsService } from './core/services/router-events.service';
 import { LoadingSkeletonDefault } from './core/components/loading-skeleton-default/loading-skeleton-default';
 import { NotificationService } from './core/services/notification.service';
 import { LastSignedInAccountService } from './auth/last-signed-in-account.service';
+import { OidcSecurityService } from 'angular-auth-oidc-client';
 
 @Component({
   selector: 'app-root',
@@ -44,6 +45,7 @@ export class App implements OnInit, OnDestroy {
   private readonly routerEventsService = inject(RouterEventsService);
   private readonly notificationService = inject(NotificationService);
   private readonly lastSignedInAccountService = inject(LastSignedInAccountService);
+  private readonly oidcSecurityService = inject(OidcSecurityService);
 
   appVersion = this.configService.version;
   notifications = this.notificationService.notifications;
@@ -99,7 +101,6 @@ export class App implements OnInit, OnDestroy {
       this.lastSignedInAccountService.set(lastSignedInAccount);
     }
 
-    const logoutUri = window.location.origin + '/' + 'login';
-    window.location.href = `https://eu-central-16rlj50drm.auth.eu-central-1.amazoncognito.com/logout?client_id=6n5d5gru7c0ncf5npa0m5ls2n8&logout_uri=${encodeURIComponent(logoutUri)}`;
+    this.oidcSecurityService.logoff();
   }
 }

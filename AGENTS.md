@@ -43,7 +43,7 @@ Use `npm run build` as the main verification for template/type errors. Existing 
 - Auth:
   - `AuthService` stores `isAuthenticated`, `username`, and `appRoles`.
   - Admin access is guarded by `canMatchAdmin`; authenticated routes use `canMatchAuthenticated`.
-  - Username display strips the `db-accessor_` prefix.
+  - Username display strips the configured external identity provider prefix.
 - Route resolvers commonly preload data into `ActivatedRoute.snapshot.data`; keep resolver payload types explicit in consuming components.
 - Loading skeletons are driven by route `data.skeleton` through `RouterEventsService`.
 - Admin request filtering uses the `REQUESTS_FILTER` injection token; keep pending/all request screens sharing the same `Requests` component.
