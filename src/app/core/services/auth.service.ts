@@ -19,10 +19,13 @@ export class AuthService {
     isAuthenticated: boolean,
     userData: { username?: string; email?: string; name?: string },
     idTokenPayload: { ['cognito:groups']?: AppRole[]; email?: string; name?: string } | null,
+    identityProviderName?: string,
   ) {
     this.isAuthenticated = isAuthenticated;
+    const usernamePrefix = identityProviderName ? `${identityProviderName}_` : '';
+    const username = userData?.username;
     this.username =
-      (userData?.username as string)?.split('db-accessor' + '_')[1] ||
+      (usernamePrefix && username?.startsWith(usernamePrefix) ? username.slice(usernamePrefix.length) : username) ||
       userData?.name ||
       idTokenPayload?.name ||
       null;

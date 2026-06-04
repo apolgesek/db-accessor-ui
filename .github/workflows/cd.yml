@@ -202,10 +202,16 @@ jobs:
             --query "Parameter.Value" \
             --output text)"
 
+          IDENTITY_PROVIDER_NAME="$(aws ssm get-parameter \
+            --name "/db-accessor-${STAGE}/auth/identity-provider-name" \
+            --query "Parameter.Value" \
+            --output text)"
+
           echo "bucket=${BUCKET}" >> "$GITHUB_OUTPUT"
           echo "distribution_id=${DISTRIBUTION_ID}" >> "$GITHUB_OUTPUT"
           echo "authority=${AUTHORITY}" >> "$GITHUB_OUTPUT"
           echo "client_id=${CLIENT_ID}" >> "$GITHUB_OUTPUT"
+          echo "identity_provider_name=${IDENTITY_PROVIDER_NAME}" >> "$GITHUB_OUTPUT"
 
       - name: Write runtime config
         shell: bash
@@ -214,6 +220,7 @@ jobs:
           NEW_TAG: ${{ needs.tag-release.outputs.new_tag }}
           AUTHORITY: ${{ steps.config.outputs.authority }}
           CLIENT_ID: ${{ steps.config.outputs.client_id }}
+          IDENTITY_PROVIDER_NAME: ${{ steps.config.outputs.identity_provider_name }}
         run: |
           set -euo pipefail
 
@@ -227,6 +234,7 @@ jobs:
               authority: process.env.AUTHORITY,
               clientId: process.env.CLIENT_ID,
               scope: config.auth?.scope ?? 'openid email profile',
+              identityProviderName: process.env.IDENTITY_PROVIDER_NAME,
             };
             fs.writeFileSync(p, JSON.stringify(config, null, 2) + '\n');
           "

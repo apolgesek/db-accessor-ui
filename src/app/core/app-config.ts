@@ -2,6 +2,7 @@ export type AppAuthConfig = {
   authority: string;
   clientId: string;
   scope?: string;
+  identityProviderName?: string;
 };
 
 export type AppConfig = {
