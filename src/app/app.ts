@@ -89,18 +89,21 @@ export class App implements OnInit, OnDestroy {
   }
 
   logout(): void {
+    const auth = this.configService.auth();
+
     this.notificationService.closeConnection();
+    this.oidcSecurityService.logoffLocal();
 
-    const lastSignedInAccount = {
-      username: this.username,
-      email: this.email,
-    };
-
-    if (window.localStorage) {
-      window.localStorage.clear();
-      this.lastSignedInAccountService.set(lastSignedInAccount);
+    if (!auth?.clientId || !auth.authority) {
+      window.location.assign(window.location.origin);
+      return;
     }
 
-    this.oidcSecurityService.logoff();
+    const logoutUrl = new URL(`${auth.cognitoDomain}/logout`);
+
+    logoutUrl.searchParams.set('client_id', auth.clientId);
+    logoutUrl.searchParams.set('logout_uri', `${window.location.origin}/login`);
+
+    window.location.assign(logoutUrl.toString());
   }
 }
