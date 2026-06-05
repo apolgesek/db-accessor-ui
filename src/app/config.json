@@ -6,6 +6,7 @@
   "auth": {
     "authority": "https://cognito-idp.eu-central-1.amazonaws.com/eu-central-1_6TfnY2tqS",
     "clientId": "vu21htj3e4uaju3bdumlpft2d",
+    "cognitoDomain": "https://auth.dev.4eyesdb.com",
     "scope": "openid email profile",
     "identityProviderName": "external-idp"
   }

@@ -1,6 +1,7 @@
 export type AppAuthConfig = {
   authority: string;
   clientId: string;
+  cognitoDomain: string;
   scope?: string;
   identityProviderName?: string;
 };
