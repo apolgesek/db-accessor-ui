@@ -19,3 +19,16 @@ export type DynamoDbTable = {
   pk: string;
   sk?: string;
 };
+
+export type ConfiguredDynamoDbTable = DynamoDbTable & {
+  accountId: string;
+  region: string;
+  createdAt: string;
+  createdBy?: string;
+};
+
+export type CreateConfiguredDynamoDbTablePayload = {
+  accountId: string;
+  region: string;
+  table: string;
+};

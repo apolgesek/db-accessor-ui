@@ -115,13 +115,15 @@ export class NewRequest implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(([account, region]) => {
         this.form.controls.table.setValue(null);
+        this.form.controls.table.disable();
         this.form.controls.targetPk.setValue(null);
         this.form.controls.targetSk.setValue(null);
+        this.tables = [];
 
         if (account && region) {
           this.spinnerService.setIsLoading(true);
           this.accountsHttp
-            .getTables(account, region)
+            .getConfiguredTables(account, region)
             .pipe(
               finalize(() => {
                 this.spinnerService.setIsLoading(false);

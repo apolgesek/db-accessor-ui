@@ -1,0 +1,182 @@
+<nz-breadcrumb style="margin-bottom: 1rem">
+  <nz-breadcrumb-item>
+    <a routerLink="/admin/configuration">Configuration</a>
+  </nz-breadcrumb-item>
+  <nz-breadcrumb-item>Manage tables</nz-breadcrumb-item>
+</nz-breadcrumb>
+
+<h3 nz-typography>Manage tables</h3>
+
+<form
+  nz-form
+  [formGroup]="form"
+  (ngSubmit)="submit()"
+  nzLayout="inline"
+  style="gap: 1rem; align-items: flex-start; margin-bottom: 1.5rem"
+>
+  <nz-form-item>
+    <nz-form-label nzRequired>Account</nz-form-label>
+    <nz-form-control nzErrorTip="Account is required.">
+      <nz-select
+        formControlName="accountId"
+        nzShowSearch
+        nzAllowClear
+        nzPlaceHolder="Select account"
+        nzOptionFilterProp="nzLabel"
+        style="width: 280px"
+      >
+        @for (opt of accountOptions; track opt.value) {
+          <nz-option [nzValue]="opt.value" [nzLabel]="opt.label"></nz-option>
+        }
+      </nz-select>
+    </nz-form-control>
+  </nz-form-item>
+
+  <nz-form-item>
+    <nz-form-label nzRequired>Region</nz-form-label>
+    <nz-form-control nzErrorTip="Region is required.">
+      <nz-select
+        formControlName="region"
+        nzShowSearch
+        nzAllowClear
+        nzPlaceHolder="Select region"
+        style="width: 220px"
+      >
+        @for (region of regionOptions | keyvalue; track region.key) {
+          <nz-option-group [nzLabel]="region.key">
+            @for (opt of region.value; track opt.value) {
+              <nz-option [nzValue]="opt.value" [nzLabel]="opt.label"></nz-option>
+            }
+          </nz-option-group>
+        }
+      </nz-select>
+    </nz-form-control>
+  </nz-form-item>
+
+  <nz-form-item>
+    <nz-form-label nzRequired>Table</nz-form-label>
+    <nz-form-control nzErrorTip="Table is required.">
+      <nz-select
+        formControlName="table"
+        [nzDisabled]="tableSelectDisabled"
+        nzShowSearch
+        nzAllowClear
+        nzPlaceHolder="Select table"
+        style="width: 240px"
+      >
+        @for (table of availableTables; track table.name) {
+          <nz-option [nzValue]="table.name" [nzLabel]="table.name"></nz-option>
+        }
+      </nz-select>
+    </nz-form-control>
+  </nz-form-item>
+
+  <button nz-button nzType="primary" type="submit" style="flex: 1">
+    <nz-icon nzType="plus"></nz-icon>
+    Add
+  </button>
+</form>
+
+<nz-table #tableList [nzData]="filteredTables" nzTableLayout="fixed" style="width: 100%">
+  <thead>
+    <tr>
+      <th nzWidth="6%">
+        <nz-icon
+          nzType="plus"
+          class="ant-table-row-expand-icon"
+          style="margin-right: 0.5rem"
+          (click)="expandAll()"
+        />
+        <nz-icon nzType="minus" class="ant-table-row-expand-icon" (click)="collapseAll()" />
+      </th>
+      <th nzWidth="25%">Table</th>
+      <th nzWidth="12%">Account</th>
+      <th nzWidth="10%">Region</th>
+      <th nzWidth="13%">Partition key</th>
+      <th nzWidth="12%">Sort key</th>
+      <th nzWidth="12%">Added</th>
+      <th nzWidth="10%">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (row of tableList.data; track rowKey(row)) {
+      <tr>
+        <td
+          [nzExpand]="expandSet.has(rowKey(row))"
+          (nzExpandChange)="onExpandChange(rowKey(row), $event)"
+        ></td>
+        <td>
+          <span style="display: inline-flex; align-items: center; gap: 0.5rem">
+            <span>{{ row.name }}</span>
+            @if (isAiAssistanceEnabled(row)) {
+              <nz-tag style="margin-right: 0">
+                <nz-icon nzType="loading" nzSpin></nz-icon>
+                AI
+              </nz-tag>
+            }
+          </span>
+        </td>
+        <td>{{ row.accountId }}</td>
+        <td>{{ row.region }}</td>
+        <td>{{ row.pk }}</td>
+        <td>{{ row.sk ?? '—' }}</td>
+        <td>{{ row.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+        <td>
+          <button
+            nz-button
+            nzType="link"
+            nzSize="small"
+            nzDanger
+            type="button"
+            nz-popconfirm
+            nzPopconfirmTitle="Remove this table?"
+            (nzOnConfirm)="onRemove(row)"
+            title="Remove"
+          >
+            <nz-icon nzType="delete"></nz-icon>
+          </button>
+        </td>
+      </tr>
+      <tr [nzExpand]="expandSet.has(rowKey(row))">
+        <div style="display: flex; flex-direction: column; gap: 0.75rem">
+          <div><strong>Added by:</strong> {{ row.createdBy ?? '—' }}</div>
+          <div style="display: flex; gap: 1rem; align-items: center">
+            <div style="padding-top: 2px; line-height: 1.8">
+              <a href="#" (click)="openAiAssistanceDrawer(); (false)">AI advisor</a>
+            </div>
+            <nz-switch
+              nzSize="small"
+              [ngModel]="isAiAssistanceEnabled(row)"
+              [nzDisabled]="isAiAssistanceEnabled(row)"
+              (ngModelChange)="onAiAssistanceChange(row, $event)"
+            ></nz-switch>
+          </div>
+        </div>
+      </tr>
+    }
+  </tbody>
+</nz-table>
+
+<nz-drawer
+  nzTitle="AI Advisor"
+  nzPlacement="right"
+  nzWidth="420px"
+  [nzVisible]="aiAssistanceDrawerVisible"
+  (nzOnClose)="closeAiAssistanceDrawer()"
+>
+  <ng-container *nzDrawerContent>
+    <p style="text-align: justify">
+      AI Advisor helps reviewers understand how a managed DynamoDB table is expected to be accessed.
+      When enabled, the table can show generated suggestions for request rules, key patterns, and
+      common access scenarios.
+    </p>
+    <p style="text-align: justify">
+      The assistant is intended as a review aid only. Administrators still approve, reject, and
+      adjust rules manually before any access policy is applied.
+    </p>
+    <p style="text-align: justify">
+      Placeholder content: future versions can include model status, data handling notes, confidence
+      levels, and links to generated rule recommendations for this table.
+    </p>
+  </ng-container>
+</nz-drawer>
