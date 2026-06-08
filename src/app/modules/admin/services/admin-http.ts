@@ -4,6 +4,8 @@ import { Observable } from 'rxjs';
 import { BASE_URL } from '../../../core';
 import {
   ActiveRulesetResponse,
+  ConfiguredDynamoDbTable,
+  CreateConfiguredDynamoDbTablePayload,
   CreateRulesetRequestPayload,
   EntityRequest,
   EntityRequestsResponse,
@@ -68,5 +70,21 @@ export class AdminHttp {
       .set('region', region)
       .set('table', table);
     return this.http.get<ActiveRulesetResponse>(`${this.baseUrl}/admin/ruleset`, { params });
+  }
+
+  createConfiguredTable(
+    payload: CreateConfiguredDynamoDbTablePayload,
+  ): Observable<ConfiguredDynamoDbTable> {
+    return this.http.post<ConfiguredDynamoDbTable>(
+      `${this.baseUrl}/admin/configured-tables`,
+      payload,
+    );
+  }
+
+  deleteConfiguredTable(accountId: string, region: string, table: string): Observable<{ deleted: boolean }> {
+    const params = new HttpParams().set('accountId', accountId).set('region', region).set('table', table);
+    return this.http.delete<{ deleted: boolean }>(`${this.baseUrl}/admin/configured-tables`, {
+      params,
+    });
   }
 }

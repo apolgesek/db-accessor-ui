@@ -16,6 +16,8 @@ import {
   BellOutline,
   AmazonOutline,
   ArrowRightOutline,
+  LoadingOutline,
+  DatabaseOutline,
 } from '@ant-design/icons-angular/icons';
 
 export const icons = [
@@ -36,4 +38,6 @@ export const icons = [
   BellOutline,
   AmazonOutline,
   ArrowRightOutline,
+  LoadingOutline,
+  DatabaseOutline,
 ];

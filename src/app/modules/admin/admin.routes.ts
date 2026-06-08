@@ -7,6 +7,7 @@ import { EntityRequest } from '../../core/models';
 import { AccountsHttp } from '../my-requests/services/accounts-http';
 import { ConfigurationDashboard } from './configuration-dashboard/configuration-dashboard';
 import { ListRuleset } from './list-ruleset/list-ruleset';
+import { ManageTables } from './manage-tables/manage-tables';
 import { NewRuleset } from './new-ruleset/new-ruleset';
 import { Requests } from './requests/requests';
 import { AdminHttp } from './services/admin-http';
@@ -46,10 +47,7 @@ export const ADMIN_ROUTES: Routes = [
     ],
     resolve: {
       title: () => 'Pending requests',
-      requests: () => {
-        const adminHttp = inject(AdminHttp);
-        return adminHttp.getPendingRequests();
-      },
+      requests: () => inject(AdminHttp).getPendingRequests(),
     },
   },
   {
@@ -59,6 +57,14 @@ export const ADMIN_ROUTES: Routes = [
         path: '',
         pathMatch: 'full',
         component: ConfigurationDashboard,
+      },
+      {
+        path: 'manage-tables',
+        component: ManageTables,
+        resolve: {
+          accounts: () => inject(AccountsHttp).getAccounts(),
+          configuredTables: () => inject(AccountsHttp).getConfiguredTables(),
+        },
       },
       {
         path: 'new-ruleset',
@@ -72,10 +78,7 @@ export const ADMIN_ROUTES: Routes = [
           skeleton: 2,
         },
         resolve: {
-          accounts: () => {
-            const accountsHttp = inject(AccountsHttp);
-            return accountsHttp.getAccounts();
-          },
+          accounts: () => inject(AccountsHttp).getAccounts(),
         },
       },
       {
@@ -85,20 +88,14 @@ export const ADMIN_ROUTES: Routes = [
           skeleton: 2,
         },
         resolve: {
-          accounts: () => {
-            const accountsHttp = inject(AccountsHttp);
-            return accountsHttp.getAccounts();
-          },
+          accounts: () => inject(AccountsHttp).getAccounts(),
         },
       },
       {
         path: 'list-ruleset',
         component: ListRuleset,
         resolve: {
-          accounts: () => {
-            const accountsHttp = inject(AccountsHttp);
-            return accountsHttp.getAccounts();
-          },
+          accounts: () => inject(AccountsHttp).getAccounts(),
         },
       },
     ],
