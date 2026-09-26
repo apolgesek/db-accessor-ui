@@ -10,6 +10,8 @@ import {
   EntityRequest,
   EntityRequestsResponse,
   RequestDecisionResponse,
+  UpdatePiiDetectionPayload,
+  UpdatePiiDetectionResponse,
 } from '../../../core/models';
 
 @Injectable({
@@ -86,5 +88,12 @@ export class AdminHttp {
     return this.http.delete<{ deleted: boolean }>(`${this.baseUrl}/admin/configured-tables`, {
       params,
     });
+  }
+
+  updatePiiDetection(payload: UpdatePiiDetectionPayload): Observable<UpdatePiiDetectionResponse> {
+    return this.http.patch<UpdatePiiDetectionResponse>(
+      `${this.baseUrl}/admin/configured-tables/pii-detection`,
+      payload,
+    );
   }
 }
