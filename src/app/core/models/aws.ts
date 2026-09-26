@@ -25,10 +25,26 @@ export type ConfiguredDynamoDbTable = DynamoDbTable & {
   region: string;
   createdAt: string;
   createdBy?: string;
+  piiDetectionEnabled: boolean;
 };
 
 export type CreateConfiguredDynamoDbTablePayload = {
   accountId: string;
   region: string;
   table: string;
+};
+
+export type UpdatePiiDetectionPayload = {
+  accountId: string;
+  region: string;
+  table: string;
+  enabled: boolean;
+};
+
+export type UpdatePiiDetectionResponse = {
+  accountId: string;
+  region: string;
+  table: string;
+  piiDetectionEnabled: boolean;
+  updatedAt: string;
 };

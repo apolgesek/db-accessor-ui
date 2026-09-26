@@ -78,6 +78,7 @@ export class ManageTables implements OnInit {
   aiAssistanceByTable: Record<string, boolean> = {};
   aiAssistanceDrawerVisible = false;
   tableSelectDisabled = true;
+  private readonly piiDetectionUpdating = new Set<string>();
 
   ngOnInit(): void {
     this.form = this.fb.group<ManageTablesFormType>({
@@ -154,6 +155,44 @@ export class ManageTables implements OnInit {
         },
         error: () => {
           this.messageService.error('Table could not be removed');
+        },
+      });
+  }
+
+  isPiiDetectionUpdating(row: ConfiguredDynamoDbTable): boolean {
+    return this.piiDetectionUpdating.has(this.rowKey(row));
+  }
+
+  onPiiDetectionChange(
+    row: ConfiguredDynamoDbTable,
+    enabled: boolean,
+    control: FormControl<boolean>,
+  ): void {
+    const key = this.rowKey(row);
+    this.piiDetectionUpdating.add(key);
+    this.adminHttp
+      .updatePiiDetection({
+        accountId: row.accountId,
+        region: row.region,
+        table: row.name,
+        enabled,
+      })
+      .pipe(finalize(() => this.piiDetectionUpdating.delete(key)))
+      .subscribe({
+        next: (response) => {
+          row.piiDetectionEnabled = response.piiDetectionEnabled;
+          this.messageService.success(
+            enabled
+              ? 'PII scanning enabled; an initial scan has been queued'
+              : 'PII scanning disabled',
+          );
+        },
+        error: () => {
+          control.setValue(row.piiDetectionEnabled, {
+            emitEvent: false,
+            emitViewToModelChange: false,
+          });
+          this.messageService.error('PII scanning setting could not be updated');
         },
       });
   }

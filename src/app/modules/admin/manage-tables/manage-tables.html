@@ -142,6 +142,20 @@
           <div><strong>Added by:</strong> {{ row.createdBy ?? '—' }}</div>
           <div style="display: flex; gap: 1rem; align-items: center">
             <div style="padding-top: 2px; line-height: 1.8">
+              <strong>PII scanning</strong>
+              <div>When enabled, scans now and daily at 02:00 UTC to generate ruleset suggestions.</div>
+            </div>
+            <nz-switch
+              #piiScanningModel="ngModel"
+              nzSize="small"
+              [ngModel]="row.piiDetectionEnabled"
+              [nzDisabled]="isPiiDetectionUpdating(row)"
+              [nzLoading]="isPiiDetectionUpdating(row)"
+              (ngModelChange)="onPiiDetectionChange(row, $event, piiScanningModel.control)"
+            ></nz-switch>
+          </div>
+          <div style="display: flex; gap: 1rem; align-items: center">
+            <div style="padding-top: 2px; line-height: 1.8">
               <a href="#" (click)="openAiAssistanceDrawer(); (false)">AI advisor</a>
             </div>
             <nz-switch
