@@ -91,7 +91,7 @@ export class AdminHttp {
   }
 
   updatePiiDetection(payload: UpdatePiiDetectionPayload): Observable<UpdatePiiDetectionResponse> {
-    return this.http.patch<UpdatePiiDetectionResponse>(
+    return this.http.put<UpdatePiiDetectionResponse>(
       `${this.baseUrl}/admin/configured-tables/pii-detection`,
       payload,
     );
