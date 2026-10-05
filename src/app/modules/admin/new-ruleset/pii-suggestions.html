@@ -1,0 +1,182 @@
+@if (accountId && region && table) {
+  <section aria-label="PII suggestions" style="margin-bottom: 1.5rem">
+    @if (loading) {
+      <p role="status">Loading PII suggestions…</p>
+    } @else if (error) {
+      <nz-alert
+        nzType="warning"
+        nzMessage="PII suggestions could not be loaded. You can still enter rules manually."
+      />
+      <button nz-button type="button" (click)="refresh()" style="margin-top: 0.5rem">Retry</button>
+  } @else if (unconfigured) {
+    <p>PII suggestions are unavailable because this table has not been added in Manage tables. You can still enter rules manually.</p>
+  } @else if (response; as data) {
+      <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap">
+        <span>
+          <strong>{{ data.suggestions.length }} suggested PII paths</strong>
+          @if (data.suggestionsGeneratedAt) {
+            · Generated at
+            {{ data.suggestionsGeneratedAt | date: 'mediumDate' }}
+          }
+        </span>
+        <button
+          nz-button
+          type="button"
+          [disabled]="!data.suggestions.length"
+          (click)="openReview()"
+        >
+          Review
+        </button>
+        <button
+          nz-button
+          nzType="default"
+          type="button"
+          aria-label="Refresh suggestions"
+          title="Refresh suggestions"
+          (click)="refresh()"
+        >
+          <nz-icon nzType="sync" nzTheme="outline" />
+        </button>
+      </div>
+      @if (!data.piiDetectionEnabled) {
+        <p>PII scanning is disabled. Existing suggestions may be out of date.</p>
+      }
+      @if (data.latestScan; as scan) {
+        @if (scan.status !== 'SUCCEEDED') {
+          <p role="status">
+            Latest scan: {{ scan.status }}
+            @if (scan.failureCode) {
+              ({{ scan.failureCode }})
+            }
+            .
+            @if (data.suggestionsGeneratedAt) {
+              Showing suggestions from the previous successful scan.
+            } @else {
+              No successful scan results are available yet.
+            }
+          </p>
+        } @else if (!data.suggestions.length) {
+          <p>No PII paths were suggested by the latest scan. You can still enter rules manually.</p>
+        }
+      } @else {
+        <p>No scan results yet. Scanning can be enabled in Manage tables.</p>
+      }
+      @if (data.suggestionsTruncated) {
+        <nz-alert
+          nzType="warning"
+          [nzMessage]="
+            'Showing ' +
+            data.suggestions.length +
+            ' of ' +
+            data.totalSuggestionCount +
+            ' suggestions due to scan storage limits.'
+          "
+        />
+      }
+    }
+  </section>
+}
+
+<nz-drawer
+  [nzVisible]="drawerOpen"
+  nzTitle="Review PII suggestions"
+  nzWidth="min(900px, 95vw)"
+  [nzFooter]="drawerFooter"
+  (nzOnClose)="drawerOpen = false"
+>
+  <ng-container *nzDrawerContent>
+    <p>
+      {{ accountId }} · {{ region }} · <strong>{{ table }}</strong>
+    </p>
+    @if (response?.suggestionsGeneratedAt) {
+      <p>Suggestions generated {{ response?.suggestionsGeneratedAt | date: 'mediumDate' }}.</p>
+    }
+    <nz-alert
+      nzType="info"
+      nzMessage="Suggestions come from a table-wide sample and may include false positives. Review each path and choose the partition/sort-key scope yourself. Adding paths only changes this form; submit the ruleset to save."
+    />
+    @if (disabled) {
+      <p>Resolve the existing ruleset scope or finish loading it before adding paths.</p>
+    }
+    <nz-table
+      #suggestionTable
+      [nzData]="response?.suggestions ?? []"
+      [nzShowPagination]="false"
+      [nzFrontPagination]="false"
+      [nzScroll]="{ x: '650px' }"
+      nzTableLayout="fixed"
+      nzSize="small"
+      style="margin-top: 1rem"
+    >
+      <thead>
+        <tr>
+          <th nzWidth="44px">
+            <label
+              nz-checkbox
+              title="Select all available paths"
+              [ngModel]="allSelected"
+              [ngModelOptions]="{ standalone: true }"
+              [nzIndeterminate]="selectedCount > 0 && !allSelected"
+              [nzDisabled]="disabled || !availablePaths.length"
+              (ngModelChange)="selectAll($event)"
+              ><span class="checkbox-label">Select all available paths</span></label
+            >
+          </th>
+          <th>Path</th>
+          <th nzWidth="150px">Detected types</th>
+          <th nzWidth="96px">Confidence</th>
+          <th nzWidth="116px" title="Detected records / records with this path">
+            Supporting records
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (suggestion of suggestionTable.data; track suggestion.path) {
+          <tr>
+            <td>
+              <label
+                nz-checkbox
+                [ngModel]="selectedPaths.has(suggestion.path) || isExisting(suggestion.path)"
+                [title]="
+                  isExisting(suggestion.path) ? 'Already added' : 'Select ' + suggestion.path
+                "
+                [ngModelOptions]="{ standalone: true }"
+                [nzDisabled]="disabled || isExisting(suggestion.path)"
+                (ngModelChange)="select(suggestion.path, $event)"
+              >
+                <span class="checkbox-label"
+                  >{{ isExisting(suggestion.path) ? 'Already added: ' : 'Select '
+                  }}{{ suggestion.path }}</span
+                >
+              </label>
+            </td>
+            <td>
+            <code style="overflow-wrap: anywhere; font-size: 12px">{{ suggestion.path }}</code>
+            </td>
+            <td>
+              @for (detection of suggestion.detections; track detection.entityType) {
+                <div>{{ detection.entityType.replaceAll('_', ' ') }}</div>
+              }
+            </td>
+            <td>{{ suggestion.confidence | percent: '1.0-0' }}</td>
+            <td>{{ suggestion.detectedRecordCount }} / {{ suggestion.observedRecordCount }}</td>
+          </tr>
+        }
+      </tbody>
+    </nz-table>
+  </ng-container>
+</nz-drawer>
+<ng-template #drawerFooter>
+  <div style="display: flex; justify-content: end; gap: 0.5rem">
+    <button nz-button type="button" (click)="drawerOpen = false">Cancel</button>
+    <button
+      nz-button
+      nzType="primary"
+      type="button"
+      [disabled]="disabled || !selectedCount"
+      (click)="addSelected()"
+    >
+      Add selected paths ({{ selectedCount }})
+    </button>
+  </div>
+</ng-template>

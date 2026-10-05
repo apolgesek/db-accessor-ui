@@ -29,7 +29,13 @@
   <nz-form-item>
     <nz-form-label nzRequired>Region</nz-form-label>
     <nz-form-control nzErrorTip="Region is required.">
-      <nz-select formControlName="region" nzPlaceHolder="Select region" nzShowSearch nzAllowClear>
+      <nz-select
+        formControlName="region"
+        nzPlaceHolder="Select region"
+        nzShowSearch
+        nzAllowClear
+        [nzNotFoundContent]="form.controls.accountId.value ? 'No available regions for this account' : 'Select an account first'"
+      >
         @for (region of regionOptions | keyvalue; track region.key) {
           <nz-option-group [nzLabel]="region.key">
             @for (opt of region.value; track opt) {
@@ -58,6 +64,10 @@
       <input nz-input formControlName="targetPk" placeholder="Partition key" />
     </nz-form-control>
   </nz-form-item>
+
+  @if (tableLoadFailed) {
+    <nz-alert nzType="error" nzMessage="Tables could not be loaded. Select the region again to retry." />
+  }
 
   <nz-form-item>
     <nz-form-label [nzRequired]="selectedTableHasSortKey">Target SK</nz-form-label>

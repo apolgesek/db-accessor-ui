@@ -35,7 +35,13 @@
   <nz-form-item>
     <nz-form-label nzRequired>Region</nz-form-label>
     <nz-form-control nzErrorTip="Region is required.">
-      <nz-select formControlName="region" nzPlaceHolder="Select region" nzShowSearch nzAllowClear>
+      <nz-select
+        formControlName="region"
+        nzPlaceHolder="Select region"
+        nzShowSearch
+        nzAllowClear
+        [nzNotFoundContent]="form.controls.accountId.value ? 'No available regions for this account' : 'Select an account first'"
+      >
         @for (region of regionOptions | keyvalue; track region.key) {
           <nz-option-group [nzLabel]="region.key">
             @for (opt of region.value; track opt) {
@@ -57,6 +63,19 @@
       </nz-select>
     </nz-form-control>
   </nz-form-item>
+
+  <app-pii-suggestions
+    [accountId]="form.controls.accountId.value"
+    [region]="form.controls.region.value"
+    [table]="form.controls.table.value"
+    [existingPaths]="rulePaths"
+    [disabled]="form.controls.ruleset.disabled"
+    (pathsSelected)="addSuggestedPaths($event)"
+  />
+
+  @if (tableLoadFailed) {
+    <nz-alert nzType="error" nzMessage="Tables could not be loaded. Select the region again to retry." />
+  }
 
   <div style="display: flex; gap: 0.5rem; align-items: flex-start">
     <nz-form-item style="flex: 1">
@@ -180,7 +199,7 @@
   }
 
   <div style="display: flex; justify-content: end; margin-top: 2rem">
-    <button nz-button nzType="primary" [disabled]="form.invalid || form.controls.ruleset.disabled">
+    <button nz-button nzType="primary" type="submit">
       {{ submitLabel }}
     </button>
   </div>
