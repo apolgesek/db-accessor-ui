@@ -10,6 +10,7 @@ import {
   EntityRequest,
   EntityRequestsResponse,
   RequestDecisionResponse,
+  PiiSuggestionsResponse,
   UpdatePiiDetectionPayload,
   UpdatePiiDetectionResponse,
 } from '../../../core/models';
@@ -94,6 +95,14 @@ export class AdminHttp {
     return this.http.put<UpdatePiiDetectionResponse>(
       `${this.baseUrl}/admin/configured-tables/pii-detection`,
       payload,
+    );
+  }
+
+  getPiiSuggestions(accountId: string, region: string, table: string): Observable<PiiSuggestionsResponse> {
+    const params = new HttpParams().set('accountId', accountId).set('region', region).set('table', table);
+    return this.http.get<PiiSuggestionsResponse>(
+      `${this.baseUrl}/admin/configured-tables/pii-suggestions`,
+      { params },
     );
   }
 }

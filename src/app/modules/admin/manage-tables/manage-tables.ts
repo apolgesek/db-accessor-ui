@@ -1,5 +1,7 @@
+import { showValidationErrors } from '../../../core/form-validation';
 import { DatePipe, KeyValuePipe } from '@angular/common';
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   FormBuilder,
   FormControl,
@@ -9,11 +11,10 @@ import {
   Validators,
 } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import groupBy from 'lodash.groupby';
-import { finalize } from 'rxjs';
+import { accountRegionOptions, accountRegions } from '../../../core/account-regions';
+import { distinctUntilChanged, finalize, Subscription } from 'rxjs';
 import { NzBreadCrumbModule } from 'ng-zorro-antd/breadcrumb';
 import { NzButtonModule } from 'ng-zorro-antd/button';
-import { NzDrawerModule } from 'ng-zorro-antd/drawer';
 import { NzFormModule } from 'ng-zorro-antd/form';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzMessageService } from 'ng-zorro-antd/message';
@@ -21,13 +22,8 @@ import { NzPopconfirmModule } from 'ng-zorro-antd/popconfirm';
 import { NzSelectModule } from 'ng-zorro-antd/select';
 import { NzSwitchModule } from 'ng-zorro-antd/switch';
 import { NzTableModule } from 'ng-zorro-antd/table';
-import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzTypographyModule } from 'ng-zorro-antd/typography';
-import {
-  AwsAccountsResponse,
-  ConfiguredDynamoDbTable,
-  DynamoDbTable,
-} from '../../../core/models';
+import { AwsAccountsResponse, ConfiguredDynamoDbTable, DynamoDbTable } from '../../../core/models';
 import { SpinnerService } from '../../../core/services/spinner.service';
 import { AccountsHttp } from '../../my-requests/services/accounts-http';
 import { AdminHttp } from '../services/admin-http';
@@ -48,14 +44,12 @@ type ManageTablesFormType = {
     RouterLink,
     NzBreadCrumbModule,
     NzButtonModule,
-    NzDrawerModule,
     NzFormModule,
     NzIconModule,
     NzPopconfirmModule,
     NzSelectModule,
     NzSwitchModule,
     NzTableModule,
-    NzTagModule,
     NzTypographyModule,
   ],
   templateUrl: './manage-tables.html',
@@ -67,16 +61,16 @@ export class ManageTables implements OnInit {
   private readonly adminHttp = inject(AdminHttp);
   private readonly spinnerService = inject(SpinnerService);
   private readonly messageService = inject(NzMessageService);
+  private readonly destroyRef = inject(DestroyRef);
+  private tablesRequest?: Subscription;
 
   form!: FormGroup<ManageTablesFormType>;
   accountOptions: { value: string; label: string }[] = [];
-  regionOptions: Record<string, { value: string; label: string }[]> = {};
+  regionOptions: ReturnType<typeof accountRegionOptions> = {};
   availableTables: DynamoDbTable[] = [];
   configuredTables: ConfiguredDynamoDbTable[] = [];
   filteredTables: ConfiguredDynamoDbTable[] = [];
   expandSet = new Set<string>();
-  aiAssistanceByTable: Record<string, boolean> = {};
-  aiAssistanceDrawerVisible = false;
   tableSelectDisabled = true;
   private readonly piiDetectionUpdating = new Set<string>();
 
@@ -102,22 +96,21 @@ export class ManageTables implements OnInit {
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
 
-    const regionOptions = data.regions.map((region) => ({
-      value: region.code,
-      label: region.longName,
-    }));
-    this.regionOptions = groupBy(regionOptions, (opt) => opt.label.split('(')[0].trim());
-
-    this.form.controls.accountId.valueChanges.subscribe(() => this.onAccountOrRegionChange());
-    this.form.controls.region.valueChanges.subscribe(() => this.onAccountOrRegionChange());
+    this.form.controls.accountId.valueChanges
+      .pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe((accountId) => {
+        this.regionOptions = accountRegionOptions(this.route.snapshot.data['accounts'], accountId);
+        this.form.controls.region.setValue(null, { emitEvent: false });
+        this.onAccountOrRegionChange();
+      });
+    this.form.controls.region.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.onAccountOrRegionChange());
   }
 
   submit(): void {
     if (this.form.invalid) {
-      this.form.markAllAsDirty();
-      Object.values(this.form.controls).forEach((control) =>
-        control.updateValueAndValidity({ onlySelf: true }),
-      );
+      showValidationErrors(this.form);
       return;
     }
 
@@ -137,7 +130,9 @@ export class ManageTables implements OnInit {
           this.reloadConfiguredTables();
         },
         error: (err) => {
-          this.messageService.error(err.status === 409 ? 'Table is already configured' : 'Table could not be added');
+          this.messageService.error(
+            err.status === 409 ? 'Table is already configured' : 'Table could not be added',
+          );
         },
       });
   }
@@ -217,23 +212,8 @@ export class ManageTables implements OnInit {
     return `${row.accountId}#${row.region}#${row.name}`;
   }
 
-  isAiAssistanceEnabled(row: ConfiguredDynamoDbTable): boolean {
-    return this.aiAssistanceByTable[this.rowKey(row)] ?? false;
-  }
-
-  onAiAssistanceChange(row: ConfiguredDynamoDbTable, enabled: boolean): void {
-    this.aiAssistanceByTable[this.rowKey(row)] = enabled;
-  }
-
-  openAiAssistanceDrawer(): void {
-    this.aiAssistanceDrawerVisible = true;
-  }
-
-  closeAiAssistanceDrawer(): void {
-    this.aiAssistanceDrawerVisible = false;
-  }
-
   private onAccountOrRegionChange(): void {
+    this.tablesRequest?.unsubscribe();
     this.form.controls.table.setValue(null);
     this.availableTables = [];
     this.tableSelectDisabled = true;
@@ -243,15 +223,25 @@ export class ManageTables implements OnInit {
     const accountId = this.form.controls.accountId.value;
     const region = this.form.controls.region.value;
 
-    if (accountId && region) {
+    if (
+      accountId &&
+      region &&
+      accountRegions(this.route.snapshot.data['accounts'], accountId).some((r) => r.code === region)
+    ) {
       this.spinnerService.setIsLoading(true);
-      this.accountsHttp
+      this.tablesRequest = this.accountsHttp
         .getTables(accountId, region)
-        .pipe(finalize(() => this.spinnerService.setIsLoading(false)))
-        .subscribe((tables) => {
-          this.availableTables = tables;
-          this.tableSelectDisabled = false;
-          this.form.controls.table.enable();
+        .pipe(
+          takeUntilDestroyed(this.destroyRef),
+          finalize(() => this.spinnerService.setIsLoading(false)),
+        )
+        .subscribe({
+          next: (tables) => {
+            this.availableTables = tables;
+            this.tableSelectDisabled = false;
+            this.form.controls.table.enable();
+          },
+          error: () => this.messageService.error('Tables could not be loaded'),
         });
     }
   }

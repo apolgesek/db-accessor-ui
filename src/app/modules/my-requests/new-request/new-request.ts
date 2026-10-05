@@ -1,3 +1,4 @@
+import { showValidationErrors } from '../../../core/form-validation';
 import { Component, DestroyRef, ElementRef, inject, OnInit, ViewChild } from '@angular/core';
 import {
   FormBuilder,
@@ -9,14 +10,14 @@ import {
 import { NzFormModule } from 'ng-zorro-antd/form';
 import { NzInputModule } from 'ng-zorro-antd/input';
 import { NzInputNumberModule } from 'ng-zorro-antd/input-number';
-import { combineLatest, finalize } from 'rxjs';
+import { catchError, distinctUntilChanged, finalize, map, merge, of, switchMap } from 'rxjs';
 import { NzButtonModule } from 'ng-zorro-antd/button';
 import { RequestHttp } from '../services/request-http';
 import { SpinnerService } from '../../../core/services/spinner.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { NzTypographyModule } from 'ng-zorro-antd/typography';
 import { NzSelectModule } from 'ng-zorro-antd/select';
-import groupBy from 'lodash.groupby';
+import { accountRegionOptions, accountRegions } from '../../../core/account-regions';
 import { KeyValuePipe } from '@angular/common';
 import { NzAlertModule } from 'ng-zorro-antd/alert';
 import { AccountsHttp } from '../services/accounts-http';
@@ -63,7 +64,8 @@ export class NewRequest implements OnInit {
   private readonly route = inject(ActivatedRoute);
   form!: FormGroup<RequestFormType>;
   accountOptions: { value: string; label: string }[] = [];
-  regionOptions: Record<string, { value: string; label: string }[]> = {};
+  regionOptions: ReturnType<typeof accountRegionOptions> = {};
+  tableLoadFailed = false;
   tables: DynamoDbTable[] = [];
 
   @ViewChild('ref') formElement!: ElementRef;
@@ -101,38 +103,52 @@ export class NewRequest implements OnInit {
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
 
-    const regionsData = (this.route.snapshot.data['accounts'] as AwsAccountsResponse).regions;
-    const regionOptions = regionsData.map((region) => ({
-      value: region.code,
-      label: region.longName,
-    }));
-    this.regionOptions = groupBy(regionOptions, (opt) => opt.label.split('(')[0].trim());
-
-    const accountIdChanges = this.form.controls.accountId.valueChanges;
+    const accountIdChanges = this.form.controls.accountId.valueChanges.pipe(distinctUntilChanged());
     const regionChanges = this.form.controls.region.valueChanges;
 
-    combineLatest([accountIdChanges, regionChanges])
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(([account, region]) => {
-        this.form.controls.table.setValue(null);
-        this.form.controls.table.disable();
-        this.form.controls.targetPk.setValue(null);
-        this.form.controls.targetSk.setValue(null);
-        this.tables = [];
+    accountIdChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((accountId) => {
+      this.regionOptions = accountRegionOptions(this.route.snapshot.data['accounts'], accountId);
+      this.form.controls.region.setValue(null, { emitEvent: false });
+    });
 
-        if (account && region) {
-          this.spinnerService.setIsLoading(true);
-          this.accountsHttp
-            .getConfiguredTables(account, region)
-            .pipe(
+    merge(accountIdChanges, regionChanges)
+      .pipe(
+        map(() => [this.form.controls.accountId.value, this.form.controls.region.value] as const),
+        distinctUntilChanged(([a, r], [nextA, nextR]) => a === nextA && r === nextR),
+        switchMap(([account, region]) => {
+          this.tableLoadFailed = false;
+          this.form.controls.table.setValue(null);
+          this.form.controls.table.disable();
+          this.form.controls.targetPk.setValue(null);
+          this.form.controls.targetSk.setValue(null);
+          this.tables = [];
+
+          if (
+            account &&
+            region &&
+            accountRegions(this.route.snapshot.data['accounts'], account).some(
+              (r) => r.code === region,
+            )
+          ) {
+            this.spinnerService.setIsLoading(true);
+            return this.accountsHttp.getConfiguredTables(account, region).pipe(
               finalize(() => {
                 this.spinnerService.setIsLoading(false);
               }),
-            )
-            .subscribe((tables) => {
-              this.tables = tables;
-              this.form.controls.table.enable();
-            });
+              catchError(() => {
+                this.tableLoadFailed = true;
+                return of(null);
+              }),
+            );
+          }
+          return of(null);
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((tables) => {
+        if (tables) {
+          this.tables = tables;
+          this.form.controls.table.enable();
         }
       });
 
@@ -154,10 +170,7 @@ export class NewRequest implements OnInit {
 
   submit() {
     if (this.form.invalid) {
-      this.form.markAllAsDirty();
-      (Object.keys(this.form.controls) as (keyof RequestFormType)[]).forEach((key) => {
-        this.form.controls[key].updateValueAndValidity({ onlySelf: true });
-      });
+      showValidationErrors(this.form);
       return;
     }
 

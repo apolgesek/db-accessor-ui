@@ -12,6 +12,7 @@ export type AwsRegion = {
 export type AwsAccountsResponse = {
   accounts: AwsAccount[];
   regions: AwsRegion[];
+  regionsByAccount: Record<string, AwsRegion[]>;
 };
 
 export type DynamoDbTable = {

@@ -1,3 +1,4 @@
+import { showValidationErrors } from '../../../core/form-validation';
 import { KeyValuePipe } from '@angular/common';
 import { Component, DestroyRef, inject, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -10,8 +11,8 @@ import {
   Validators,
 } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import groupBy from 'lodash.groupby';
-import { catchError, combineLatest, finalize, of, switchMap } from 'rxjs';
+import { catchError, distinctUntilChanged, finalize, map, merge, of, switchMap } from 'rxjs';
+import { accountRegionOptions, accountRegions } from '../../../core/account-regions';
 import { NzAlertModule } from 'ng-zorro-antd/alert';
 import { NzBreadCrumbModule } from 'ng-zorro-antd/breadcrumb';
 import { NzButtonModule } from 'ng-zorro-antd/button';
@@ -31,6 +32,7 @@ import { SpinnerService } from '../../../core/services/spinner.service';
 import { AccountsHttp } from '../../my-requests/services/accounts-http';
 import { AdminHttp } from '../services/admin-http';
 import { NzIconDirective } from 'ng-zorro-antd/icon';
+import { PiiSuggestions } from './pii-suggestions';
 
 type RulesetRuleFormType = {
   path: FormControl<string | null>;
@@ -69,6 +71,7 @@ type DecodedRulesetId = {
     NzIconDirective,
     NzBreadCrumbModule,
     RouterLink,
+    PiiSuggestions,
   ],
   templateUrl: './new-ruleset.html',
 })
@@ -82,7 +85,8 @@ export class NewRuleset implements OnInit {
   private readonly route = inject(ActivatedRoute);
   form!: FormGroup<RulesetFormType>;
   accountOptions: { value: string; label: string }[] = [];
-  regionOptions: Record<string, { value: string; label: string }[]> = {};
+  regionOptions: ReturnType<typeof accountRegionOptions> = {};
+  tableLoadFailed = false;
   tables: DynamoDbTable[] = [];
   operatorOptions: { label: string; value: RulesetOperator }[] = [
     { label: 'Begins with', value: 'BEGINS_WITH' },
@@ -94,6 +98,28 @@ export class NewRuleset implements OnInit {
 
   get rulesetControls() {
     return this.form.controls.ruleset.controls;
+  }
+
+  get rulePaths(): string[] {
+    return this.form.controls.ruleset.getRawValue().map((rule) => rule.path ?? '');
+  }
+
+  addSuggestedPaths(paths: string[]): void {
+    const ruleset = this.form.controls.ruleset;
+    if (ruleset.disabled) return;
+    const existing = new Set(this.rulePaths.map((path) => path.trim()));
+    const additions = [...new Set(paths)].filter((path) => !existing.has(path));
+    if (!additions.length) return;
+
+    if (ruleset.length === 1 && ruleset.at(0).pristine && !this.rulePaths[0].trim()) {
+      ruleset.removeAt(0);
+    }
+    for (const path of additions) {
+      const rule = this.createRuleForm();
+      rule.controls.path.setValue(path);
+      ruleset.push(rule);
+    }
+    ruleset.markAsDirty();
   }
 
   get pageTitle(): string {
@@ -135,45 +161,61 @@ export class NewRuleset implements OnInit {
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
 
-    const regionsData = (this.route.snapshot.data['accounts'] as AwsAccountsResponse).regions;
-    const regionOptions = regionsData.map((region) => ({
-      value: region.code,
-      label: region.longName,
-    }));
-    this.regionOptions = groupBy(regionOptions, (opt) => opt.label.split('(')[0].trim());
-
-    const accountIdChanges = this.form.controls.accountId.valueChanges;
+    const accountIdChanges = this.form.controls.accountId.valueChanges.pipe(distinctUntilChanged());
     const regionChanges = this.form.controls.region.valueChanges;
 
-    combineLatest([accountIdChanges, regionChanges])
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(([account, region]) => {
-        if (this.isEditMode) return;
+    accountIdChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((accountId) => {
+      this.regionOptions = accountRegionOptions(this.route.snapshot.data['accounts'], accountId);
+      if (!this.isEditMode) this.form.controls.region.setValue(null, { emitEvent: false });
+    });
 
-        this.form.controls.table.setValue(null);
-        this.form.controls.targetPk.setValue(null);
-        this.form.controls.pkOperator.setValue(null);
-        this.form.controls.targetSk.setValue(null);
-        this.form.controls.skOperator.setValue(null);
+    merge(accountIdChanges, regionChanges)
+      .pipe(
+        map(() => [this.form.controls.accountId.value, this.form.controls.region.value] as const),
+        distinctUntilChanged(([a, r], [nextA, nextR]) => a === nextA && r === nextR),
+        switchMap(([account, region]) => {
+          if (this.isEditMode) return of(null);
 
-        if (account && region) {
-          this.spinnerService.setIsLoading(true);
-          this.accountsHttp
-            .getTables(account, region)
-            .pipe(
+          this.tableLoadFailed = false;
+          this.tables = [];
+          this.form.controls.table.setValue(null);
+          this.form.controls.table.disable();
+          this.form.controls.targetPk.setValue(null);
+          this.form.controls.pkOperator.setValue(null);
+          this.form.controls.targetSk.setValue(null);
+          this.form.controls.skOperator.setValue(null);
+
+          if (
+            account &&
+            region &&
+            accountRegions(this.route.snapshot.data['accounts'], account).some(
+              (r) => r.code === region,
+            )
+          ) {
+            this.spinnerService.setIsLoading(true);
+            return this.accountsHttp.getTables(account, region).pipe(
               finalize(() => {
                 this.spinnerService.setIsLoading(false);
               }),
-            )
-            .subscribe((tables) => {
-              this.tables = tables;
-              this.form.controls.table.enable();
-            });
-        } else {
-          this.tables = [];
-          this.form.controls.table.disable();
-          this.form.controls.targetSk.disable();
-          this.form.controls.skOperator.disable();
+              catchError(() => {
+                this.tableLoadFailed = true;
+                return of(null);
+              }),
+            );
+          } else {
+            this.tables = [];
+            this.form.controls.table.disable();
+            this.form.controls.targetSk.disable();
+            this.form.controls.skOperator.disable();
+          }
+          return of(null);
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((tables) => {
+        if (tables) {
+          this.tables = tables;
+          this.form.controls.table.enable();
         }
       });
 
@@ -273,6 +315,10 @@ export class NewRuleset implements OnInit {
       return;
     }
 
+    this.regionOptions = accountRegionOptions(
+      this.route.snapshot.data['accounts'],
+      decodedId.accountId,
+    );
     this.form.patchValue(
       {
         accountId: decodedId.accountId,
@@ -282,6 +328,15 @@ export class NewRuleset implements OnInit {
       { emitEvent: false },
     );
     this.disableEditScopeControls();
+
+    if (
+      !accountRegions(this.route.snapshot.data['accounts'], decodedId.accountId).some(
+        (r) => r.code === decodedId.region,
+      )
+    ) {
+      this.setFormError('rulesetLoad', 'This region is not enabled for the selected account.');
+      return;
+    }
 
     this.spinnerService.setIsLoading(true);
     this.accountsHttp
@@ -449,12 +504,11 @@ export class NewRuleset implements OnInit {
 
   submit() {
     if (this.form.invalid) {
-      this.form.markAllAsDirty();
-      (Object.keys(this.form.controls) as (keyof RulesetFormType)[]).forEach((key) => {
-        this.form.controls[key].updateValueAndValidity({ onlySelf: true });
-      });
+      showValidationErrors(this.form);
       return;
     }
+
+    if (this.form.controls.ruleset.disabled) return;
 
     const value = this.form.getRawValue();
     const targetSk = value.targetSk?.trim() ?? '';

@@ -37,6 +37,7 @@
     <nz-form-control nzErrorTip="Region is required.">
       <nz-select
         formControlName="region"
+        [nzNotFoundContent]="form.controls.accountId.value ? 'No available regions for this account' : 'Select an account first'"
         nzShowSearch
         nzAllowClear
         nzPlaceHolder="Select region"
@@ -105,17 +106,7 @@
           [nzExpand]="expandSet.has(rowKey(row))"
           (nzExpandChange)="onExpandChange(rowKey(row), $event)"
         ></td>
-        <td>
-          <span style="display: inline-flex; align-items: center; gap: 0.5rem">
-            <span>{{ row.name }}</span>
-            @if (isAiAssistanceEnabled(row)) {
-              <nz-tag style="margin-right: 0">
-                <nz-icon nzType="loading" nzSpin></nz-icon>
-                AI
-              </nz-tag>
-            }
-          </span>
-        </td>
+        <td>{{ row.name }}</td>
         <td>{{ row.accountId }}</td>
         <td>{{ row.region }}</td>
         <td>{{ row.pk }}</td>
@@ -140,57 +131,22 @@
       <tr [nzExpand]="expandSet.has(rowKey(row))">
         <div style="display: flex; flex-direction: column; gap: 0.75rem">
           <div><strong>Added by:</strong> {{ row.createdBy ?? '—' }}</div>
-          <div style="display: flex; gap: 1rem; align-items: center">
-            <div style="padding-top: 2px; line-height: 1.8">
+          <div>
+            <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.25rem">
               <strong>PII scanning</strong>
-              <div>When enabled, scans now and daily at 02:00 UTC to generate ruleset suggestions.</div>
+              <nz-switch
+                #piiScanningModel="ngModel"
+                nzSize="small"
+                [ngModel]="row.piiDetectionEnabled"
+                [nzDisabled]="isPiiDetectionUpdating(row)"
+                [nzLoading]="isPiiDetectionUpdating(row)"
+                (ngModelChange)="onPiiDetectionChange(row, $event, piiScanningModel.control)"
+              ></nz-switch>
             </div>
-            <nz-switch
-              #piiScanningModel="ngModel"
-              nzSize="small"
-              [ngModel]="row.piiDetectionEnabled"
-              [nzDisabled]="isPiiDetectionUpdating(row)"
-              [nzLoading]="isPiiDetectionUpdating(row)"
-              (ngModelChange)="onPiiDetectionChange(row, $event, piiScanningModel.control)"
-            ></nz-switch>
-          </div>
-          <div style="display: flex; gap: 1rem; align-items: center">
-            <div style="padding-top: 2px; line-height: 1.8">
-              <a href="#" (click)="openAiAssistanceDrawer(); (false)">AI advisor</a>
-            </div>
-            <nz-switch
-              nzSize="small"
-              [ngModel]="isAiAssistanceEnabled(row)"
-              [nzDisabled]="isAiAssistanceEnabled(row)"
-              (ngModelChange)="onAiAssistanceChange(row, $event)"
-            ></nz-switch>
+            <div>When enabled, scans now and daily at 02:00 UTC to generate ruleset suggestions.</div>
           </div>
         </div>
       </tr>
     }
   </tbody>
 </nz-table>
-
-<nz-drawer
-  nzTitle="AI Advisor"
-  nzPlacement="right"
-  nzWidth="420px"
-  [nzVisible]="aiAssistanceDrawerVisible"
-  (nzOnClose)="closeAiAssistanceDrawer()"
->
-  <ng-container *nzDrawerContent>
-    <p style="text-align: justify">
-      AI Advisor helps reviewers understand how a managed DynamoDB table is expected to be accessed.
-      When enabled, the table can show generated suggestions for request rules, key patterns, and
-      common access scenarios.
-    </p>
-    <p style="text-align: justify">
-      The assistant is intended as a review aid only. Administrators still approve, reject, and
-      adjust rules manually before any access policy is applied.
-    </p>
-    <p style="text-align: justify">
-      Placeholder content: future versions can include model status, data handling notes, confidence
-      levels, and links to generated rule recommendations for this table.
-    </p>
-  </ng-container>
-</nz-drawer>

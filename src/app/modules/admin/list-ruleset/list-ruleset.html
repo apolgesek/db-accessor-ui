@@ -24,6 +24,7 @@
 
   <nz-select
     [(ngModel)]="selectedRegion"
+    [nzNotFoundContent]="selectedAccount ? 'No available regions for this account' : 'Select an account first'"
     (ngModelChange)="onRegionChange($event)"
     nzShowSearch
     nzAllowClear

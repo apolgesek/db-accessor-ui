@@ -12,7 +12,7 @@ npm run lint
 npm run test
 ```
 
-Use `npm run build` as the main verification for template/type errors, followed by `npm run lint`; these are the PR CI checks. Build defaults to production. Existing production build warnings may include bundle budget and CommonJS optimization warnings.
+Use `npm run build` as the main verification for template/type errors, followed by `npm run lint`; these are the PR CI checks. Build defaults to production.
 
 `npm test -- --watch=false --browsers=ChromeHeadless` runs Karma/Jasmine and requires Chrome (or `CHROME_BIN`). Build/lint do not verify live API behavior. Documentation-only edits need content/diff checks.
 
@@ -41,7 +41,9 @@ Use `npm run build` as the main verification for template/type errors, followed 
 
 - Use standalone components with explicit `imports` arrays. Do not add NgModules.
 - Use `inject(...)` consistently for dependencies unless an existing file uses constructor injection.
+- Prefer `Boolean(value)` over `!!value` when converting values to booleans.
 - Keep API DTOs typed. Avoid `any`; shared response/request/ruleset/account/table types belong in `src/app/core/models`.
+- Region selectors use enabled regions per target account from `/accounts.regionsByAccount` through `core/account-regions.ts`. Changing accounts clears the region and cancels stale table reads; missing region data produces no selectable regions.
 - `BASE_URL` is injected from runtime config; do not hardcode API origins in services.
 - Auth:
   - `AuthService` stores `isAuthenticated`, `username`, and `appRoles`.
@@ -55,11 +57,7 @@ Use `npm run build` as the main verification for template/type errors, followed 
 - Ruleset edit route ids are base64url strings containing `accountId#region#table#scopeKey`; decode defensively and keep generated links compatible.
 - Record routes use base64url-encoded request ids; the record view depends on JSONEditor for redacted path selection.
 
-## PII scanning
-
-- `modules/admin/manage-tables/` reads `piiDetectionEnabled` from configured tables and toggles it through `AdminHttp.updatePiiDetection`. DTOs live in `core/models/aws.ts`; the API is `PUT /admin/configured-tables/pii-detection` with `{ accountId, region, table, enabled }` (table comes from the row's `name`).
-- Enabling queues an initial scan and enables daily scans; it does not mean a scan is currently running. Suggestions are not yet displayed in this UI. The separate AI advisor control/drawer is a local placeholder.
-- Keep pending state per account/region/table and restore the actual form-control value on failure. An unchanged `[ngModel]` input alone does not undo a switch's internal value; rollback must suppress change emission to avoid another API call.
+PII scanning and suggestion guidance lives in [src/app/modules/admin/AGENTS.md](src/app/modules/admin/AGENTS.md). Read it when changing these features or their shared DTOs and API wrappers.
 
 ## Runtime configuration and deployment
 
@@ -80,6 +78,7 @@ Use `npm run build` as the main verification for template/type errors, followed 
 - Make focused changes; avoid unrelated style churn in templates and SCSS.
 - Preserve existing user changes in the working tree.
 - Run the narrowest useful check first, then `npm run build` for route/template/type changes.
+- Use throwaway tests to verify code changes and remove them after verification. Add permanent tests only when explicitly requested.
 - Starting a dev server is useful for UI work; use `npm run start` and report the local URL.
 - Never commit, deploy, or open PRs unless explicitly asked.
 - When commits are requested, use `feat`, `fix`, `refactor`, or `chore`; CI validates conventional commits and derives release labels from them.

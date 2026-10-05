@@ -1,9 +1,11 @@
 import { DatePipe, KeyValuePipe } from '@angular/common';
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import groupBy from 'lodash.groupby';
-import { finalize } from 'rxjs';
+import { accountRegionOptions, accountRegions } from '../../../core/account-regions';
+import { finalize, Subscription } from 'rxjs';
+import { NzMessageService } from 'ng-zorro-antd/message';
 import { NzBreadCrumbModule } from 'ng-zorro-antd/breadcrumb';
 import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzDatePickerModule } from 'ng-zorro-antd/date-picker';
@@ -49,9 +51,13 @@ export class ListRuleset implements OnInit {
   private readonly adminHttp = inject(AdminHttp);
   private readonly accountsHttp = inject(AccountsHttp);
   private readonly spinnerService = inject(SpinnerService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly messageService = inject(NzMessageService);
+  private tablesRequest?: Subscription;
+  private scopesRequest?: Subscription;
 
   accountOptions: { value: string; label: string }[] = [];
-  regionOptions: Record<string, { value: string; label: string }[]> = {};
+  regionOptions: ReturnType<typeof accountRegionOptions> = {};
   tables: DynamoDbTable[] = [];
   tableSelectDisabled = true;
 
@@ -69,13 +75,12 @@ export class ListRuleset implements OnInit {
     this.accountOptions = data.accounts
       .map((a) => ({ value: a.id, label: `${a.name} (${a.id})` }))
       .sort((a, b) => a.label.localeCompare(b.label));
-
-    const regionOptions = data.regions.map((r) => ({ value: r.code, label: r.longName }));
-    this.regionOptions = groupBy(regionOptions, (opt) => opt.label.split('(')[0].trim());
   }
 
   onAccountChange(value: string | null): void {
     this.selectedAccount = value;
+    this.regionOptions = accountRegionOptions(this.route.snapshot.data['accounts'], value);
+    this.selectedRegion = null;
     this.onAccountOrRegionChange();
   }
 
@@ -85,14 +90,18 @@ export class ListRuleset implements OnInit {
   }
 
   onTableChange(value: string | null): void {
+    this.scopesRequest?.unsubscribe();
     this.selectedTable = value;
     this.clearScopes();
 
     if (value && this.selectedAccount && this.selectedRegion) {
       this.spinnerService.setIsLoading(true);
-      this.adminHttp
+      this.scopesRequest = this.adminHttp
         .getActiveRuleset(this.selectedAccount, this.selectedRegion, value)
-        .pipe(finalize(() => this.spinnerService.setIsLoading(false)))
+        .pipe(
+          takeUntilDestroyed(this.destroyRef),
+          finalize(() => this.spinnerService.setIsLoading(false)),
+        )
         .subscribe((res) => {
           this.allScopes = Object.entries(res.activeRulesets).map(
             ([scopeKey, scope]: [string, ActiveRulesetScope]) => ({
@@ -111,19 +120,33 @@ export class ListRuleset implements OnInit {
   }
 
   private onAccountOrRegionChange(): void {
+    this.tablesRequest?.unsubscribe();
+    this.scopesRequest?.unsubscribe();
     this.selectedTable = null;
     this.tables = [];
     this.tableSelectDisabled = true;
     this.clearScopes();
 
-    if (this.selectedAccount && this.selectedRegion) {
+    if (
+      this.selectedAccount &&
+      this.selectedRegion &&
+      accountRegions(this.route.snapshot.data['accounts'], this.selectedAccount).some(
+        (r) => r.code === this.selectedRegion,
+      )
+    ) {
       this.spinnerService.setIsLoading(true);
-      this.accountsHttp
+      this.tablesRequest = this.accountsHttp
         .getTables(this.selectedAccount, this.selectedRegion)
-        .pipe(finalize(() => this.spinnerService.setIsLoading(false)))
-        .subscribe((tables) => {
-          this.tables = tables;
-          this.tableSelectDisabled = false;
+        .pipe(
+          takeUntilDestroyed(this.destroyRef),
+          finalize(() => this.spinnerService.setIsLoading(false)),
+        )
+        .subscribe({
+          next: (tables) => {
+            this.tables = tables;
+            this.tableSelectDisabled = false;
+          },
+          error: () => this.messageService.error('Tables could not be loaded'),
         });
     }
   }
