@@ -1,7 +1,6 @@
 import {
   ApplicationConfig,
   inject,
-  Injector,
   provideAppInitializer,
   provideBrowserGlobalErrorListeners,
   provideEnvironmentInitializer,
@@ -9,13 +8,12 @@ import {
 } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { registerLocaleData } from '@angular/common';
-import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import en from '@angular/common/locales/en';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import {
   AbstractSecurityStorage,
   authInterceptor,
-  OidcSecurityService,
   OpenIdConfiguration,
   provideAuth,
   StsConfigHttpLoader,
@@ -23,17 +21,15 @@ import {
 } from 'angular-auth-oidc-client';
 import { en_US, provideNzI18n } from 'ng-zorro-antd/i18n';
 import { provideNzIcons } from 'ng-zorro-antd/icon';
-import { filter, forkJoin, map, of, switchMap, take, tap } from 'rxjs';
+import { filter, map } from 'rxjs';
 import { routes } from './app.routes';
 import { LocalStorageService } from './auth/local-storage.service';
-import { LastSignedInAccountService } from './auth/last-signed-in-account.service';
-import { AppAuthConfig, AppConfig, ConfigService } from './core';
+import { AppAuthConfig, ConfigService } from './core';
+import { startApplication } from './core/app-startup';
 import { BASE_URL } from './core/base-url';
 import { icons } from './icons-provider';
-import { AuthService } from './core/services/auth.service';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { RouterEventsService } from './core/services/router-events.service';
-import { SessionCoordinator } from './core/services/session-coordinator';
 
 const authFactory = (configService: ConfigService) => {
   const obs$ = toObservable(configService.auth).pipe(
@@ -88,55 +84,7 @@ export const appConfig: ApplicationConfig = {
     provideEnvironmentInitializer(() => {
       inject(RouterEventsService);
     }),
-    provideAppInitializer(() => {
-      const http = inject(HttpClient);
-      const configService = inject(ConfigService);
-      const oidcSecurityService = inject(OidcSecurityService);
-      const authService = inject(AuthService);
-      const lastSignedInAccountService = inject(LastSignedInAccountService);
-      const injector = inject(Injector);
-
-      const auth$ = oidcSecurityService.checkAuth().pipe(
-        take(1),
-        switchMap(({ isAuthenticated, userData }) => {
-          if (isAuthenticated) {
-            return oidcSecurityService
-              .getPayloadFromIdToken()
-              .pipe(map((p) => ({ isAuthenticated, userData, idTokenPayload: p })));
-          }
-
-          return of({ isAuthenticated, userData, idTokenPayload: null });
-        }),
-        tap(({ isAuthenticated, userData, idTokenPayload }) => {
-          authService.setAuthData(
-            isAuthenticated,
-            userData,
-            idTokenPayload,
-            configService.auth()?.identityProviderName,
-          );
-          if (isAuthenticated) {
-            lastSignedInAccountService.clearIfSignInCompleted();
-          }
-        }),
-      );
-
-      const config$ = http.get<AppConfig>('config.json').pipe(
-        tap((config: AppConfig) => {
-          configService.apiUrl.set(config.apiUrl);
-          configService.version.set(config.version);
-          configService.webSocketUrl.set(config.webSocketUrl);
-          configService.storagePrefix.set(config.storagePrefix ?? '');
-          configService.auth.set(config.auth);
-        }),
-      );
-
-      // The coordinator reads BASE_URL, so it is resolved only after config.json has loaded.
-      return forkJoin([config$, auth$]).pipe(
-        tap(([, { isAuthenticated }]) => {
-          if (isAuthenticated) injector.get(SessionCoordinator).start();
-        }),
-      );
-    }),
+    provideAppInitializer(startApplication),
     provideHttpClient(withInterceptors([authInterceptor()])),
     provideAuth({
       loader: {

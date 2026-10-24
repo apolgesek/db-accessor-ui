@@ -8,12 +8,11 @@ import { OidcSecurityService } from 'angular-auth-oidc-client';
 import { provideNzIcons } from 'ng-zorro-antd/icon';
 import { of, Subject } from 'rxjs';
 import { App } from './app';
+import { startApplication } from './core/app-startup';
 import { BASE_URL } from './core/base-url';
 import { canMatchAuthenticated } from './core/guards/can-match-authenticated.guard';
-import { ConfigService } from './core/services/config.service';
-import { AuthService } from './core/services/auth.service';
 import { LogoutService } from './core/services/logout.service';
-import { SessionCoordinator } from './core/services/session-coordinator';
+import { PAGE_RELOAD } from './core/page-reload';
 import { SHARED_STORAGE } from './core/shared-storage';
 import { WEB_SOCKET_FACTORY } from './core/web-socket-factory';
 import { icons } from './icons-provider';
@@ -30,11 +29,17 @@ describe('application shell session bootstrap', () => {
   let router: Router;
   let socketUrls: string[];
   let logout: jasmine.Spy;
+  let reloadPage: jasmine.Spy;
+  let checkAuth: jasmine.Spy;
   let storage: Storage | null;
 
   function setUp() {
     socketUrls = [];
     logout = jasmine.createSpy('logout');
+    reloadPage = jasmine.createSpy('reloadPage');
+    checkAuth = jasmine
+      .createSpy('checkAuth')
+      .and.returnValue(of({ isAuthenticated: true, userData: { username: 'alice' } }));
     TestBed.configureTestingModule({
       imports: [App],
       providers: [
@@ -50,6 +55,8 @@ describe('application shell session bootstrap', () => {
         {
           provide: OidcSecurityService,
           useValue: {
+            checkAuth,
+            getPayloadFromIdToken: () => of({}),
             getAccessToken: () => of('fake-access-token'),
             getIdToken: () => of('fake-id-token'),
             logoffLocal: () => undefined,
@@ -64,10 +71,9 @@ describe('application shell session bootstrap', () => {
           },
         },
         { provide: LogoutService, useValue: { logout } },
+        { provide: PAGE_RELOAD, useValue: reloadPage },
       ],
     });
-    TestBed.inject(AuthService).isAuthenticated = true;
-    TestBed.inject(ConfigService).webSocketUrl.set('wss://ws.test');
     http = TestBed.inject(HttpTestingController);
     router = TestBed.inject(Router);
     fixture = TestBed.createComponent(App);
@@ -82,8 +88,16 @@ describe('application shell session bootstrap', () => {
     }
   }
 
+  // Runs the real app initializer, as bootstrap does, then opens a protected route.
   async function startAndOpenProtectedRoute(): Promise<void> {
-    TestBed.inject(SessionCoordinator).start();
+    TestBed.runInInjectionContext(startApplication).subscribe();
+    http.expectOne('config.json').flush({
+      version: 'test',
+      apiUrl: API,
+      webSocketUrl: 'wss://ws.test',
+      storagePrefix: 'test',
+      auth: { authority: 'https://idp.test', clientId: 'web-client' },
+    });
     void router.navigateByUrl('/my-requests');
     await settle();
   }
@@ -156,13 +170,20 @@ describe('application shell session bootstrap', () => {
     expect(logout).not.toHaveBeenCalled();
   });
 
-  it('shows the setup error without contacting the backend when shared storage is unavailable', async () => {
+  it('shows the setup error without checking the login when shared storage is unavailable, and Retry restarts', async () => {
     storage = null;
     setUp();
     await startAndOpenProtectedRoute();
 
+    // OIDC keeps its state in the same storage, so checking the login would throw.
+    expect(checkAuth).not.toHaveBeenCalled();
     http.expectNone(`${API}/session`);
     expect(text()).toContain('Your session could not be started');
+
+    (fixture.nativeElement as HTMLElement)
+      .querySelector<HTMLButtonElement>('.app__session-retry')!
+      .click();
+    expect(reloadPage).toHaveBeenCalled();
   });
 
   it('ends the login when the backend refuses to establish its session', async () => {
