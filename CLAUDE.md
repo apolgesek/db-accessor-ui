@@ -1,43 +1,24 @@
-# Agent Notes
+# Repository Guide
 
-Work from the repo root. This repo owns the Angular UI. Sibling `db-accessor` owns backend APIs and application CDK; `db-accessor-infra` owns shared DNS, certificates, CloudFront, and static frontend hosting.
+## Scope and navigation
 
-## Commands
+Work from the repo root. This repo owns the Angular 20 UI. Sibling `db-accessor` owns backend APIs and application CDK; `db-accessor-infra` owns shared DNS, certificates, CloudFront, and static frontend hosting.
 
-```bash
-npm ci
-npm run start
-npm run build
-npm run lint
-npm run test
-```
+- `src/app/app.config.ts`: bootstrap (runtime config, OIDC, `BASE_URL`, auth interceptor, `RouterEventsService`).
+- `src/app/app.routes.ts`: top-level routes; feature route arrays live beside modules as `*.routes.ts`.
+- `src/app/core/models`: shared DTOs. Prefer extending these before adding duplicate local shapes.
+- HTTP services are thin API wrappers: `modules/admin/services/admin-http.ts` and `modules/my-requests/services/*`.
+- Notifications: `core/services/notification.service.ts` owns HTTP pagination, unread state, and WebSocket messages; `app.ts` connects/closes the socket.
+- `src/app/modules/admin/CLAUDE.md`: PII scanning and suggestion rules for the admin module.
 
-Use `npm run build` as the main verification for template/type errors, followed by `npm run lint`; these are the PR CI checks. Build defaults to production.
+## Verification
 
-`npm test -- --watch=false --browsers=ChromeHeadless` runs Karma/Jasmine and requires Chrome (or `CHROME_BIN`). Build/lint do not verify live API behavior. Documentation-only edits need content/diff checks.
+- Install: `npm ci`. Dev server: `npm run start`.
+- `npm run build` (production by default) is the main check for template/type errors, followed by `npm run lint`; these are the PR CI checks.
+- `npm test -- --watch=false --browsers=ChromeHeadless` runs Karma/Jasmine and requires Chrome (or `CHROME_BIN`).
+- Build/lint do not verify live API behavior. Documentation-only edits need content/diff checks.
 
-## Architecture
-
-- Angular 20 app with standalone components and route files.
-- Static assets are served from `public/`; runtime `config.json` is copied from `src/app/config.json`.
-- App bootstrap is in `src/app/app.config.ts`:
-  - loads runtime config into `ConfigService`
-  - configures OIDC through `angular-auth-oidc-client`
-  - provides `BASE_URL`
-  - enables the auth HTTP interceptor
-  - eagerly initializes `RouterEventsService` for navigation loading states
-- Top-level routes live in `src/app/app.routes.ts`; feature route arrays live beside modules:
-  - `modules/my-requests/my-requests.routes.ts`
-  - `modules/admin/admin.routes.ts`
-  - `modules/login/login.routes.ts`
-  - `modules/my-requests/record/record.routes.ts`
-- Core reusable models live in `src/app/core/models`. Prefer extending these before adding duplicate local shapes.
-- HTTP services are thin API wrappers:
-  - admin: `modules/admin/services/admin-http.ts`
-  - requests/accounts/records: `modules/my-requests/services/*`
-- Notifications: `core/services/notification.service.ts` owns HTTP pagination, unread state, and WebSocket messages; `modules/notifications/` provides the full list. `app.ts` connects/closes the socket and displays the header summary.
-
-## Code Contracts
+## Code conventions
 
 - Use standalone components with explicit `imports` arrays. Do not add NgModules.
 - Use `inject(...)` consistently for dependencies unless an existing file uses constructor injection.
@@ -56,8 +37,7 @@ Use `npm run build` as the main verification for template/type errors, followed 
 - Use `takeUntilDestroyed(...)` for long-lived subscriptions created in components.
 - Ruleset edit route ids are base64url strings containing `accountId#region#table#scopeKey`; decode defensively and keep generated links compatible.
 - Record routes use base64url-encoded request ids; the record view depends on JSONEditor for redacted path selection.
-
-PII scanning and suggestion guidance lives in [src/app/modules/admin/AGENTS.md](src/app/modules/admin/AGENTS.md). Read it when changing these features or their shared DTOs and API wrappers.
+- PII DTOs in `core/models` (`aws.ts`, `pii-suggestions.ts`) are governed by `src/app/modules/admin/CLAUDE.md`; read it before changing them.
 
 ## Runtime configuration and deployment
 
@@ -65,7 +45,7 @@ PII scanning and suggestion guidance lives in [src/app/modules/admin/AGENTS.md](
 - `.github/workflows/cd.yml` deploys application changes after a merged PR to `main`. It writes release version and auth settings into built `config.json` from SSM, uploads `dist/db-accessor-ui/browser` to the shared frontend bucket, and invalidates CloudFront. Build output edits are not source changes.
 - Changes to config fields may need matching updates to `core/app-config.ts`, bootstrap, and the deployment workflow. Preserve revalidation for `index.html`/`config.json` and immutable caching for hashed assets.
 
-## UI Conventions
+## UI conventions
 
 - Use ng-zorro components already present in the feature (`nz-table`, `nz-form`, `nz-select`, `nz-alert`, `nz-icon`, etc.).
 - Prefer existing layout patterns over new design systems. Sidebar shell is in `app.html` / `app.scss`.
