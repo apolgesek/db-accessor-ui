@@ -61,7 +61,7 @@ export class App implements OnDestroy {
   constructor() {
     // Notifications start only once the backend confirms the browser login session.
     effect(() => {
-      if (this.isAuthenticated && this.sessionState() === 'active') {
+      if (this.sessionState() === 'active') {
         untracked(() => {
           this.notificationService.loadNotifications();
           this.notificationService.connect();

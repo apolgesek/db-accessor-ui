@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import { isSessionRejectionCode } from '../models';
+import { PAGE_RELOAD } from '../page-reload';
 import { SHARED_STORAGE } from '../shared-storage';
 import { ConfigService } from './config.service';
 import { LogoutService } from './logout.service';
@@ -18,19 +19,34 @@ export class SessionCoordinator {
   private readonly storage = inject(SHARED_STORAGE);
   private readonly configService = inject(ConfigService);
   private readonly logoutService = inject(LogoutService);
+  private readonly reloadPage = inject(PAGE_RELOAD);
   private readonly stateSignal = signal<SessionState>('bootstrapping');
   private activeWaiters: (() => void)[] = [];
+  private startupBlocked = false;
 
   readonly state = this.stateSignal.asReadonly();
+
+  // Called before the OIDC login is checked, since OIDC keeps its state in the same storage. Without shared
+  // storage the tabs cannot act as one session, so the tab shows the setup error instead of running one alone.
+  canStart(): boolean {
+    if (this.isStorageAvailable()) return true;
+
+    this.startupBlocked = true;
+    this.stateSignal.set('setupError');
+    return false;
+  }
 
   // Called once the OIDC login is confirmed: fresh login, reload, or a new tab.
   start(): void {
     this.establish();
   }
 
-  // Setup error screen: try establishing again.
+  // Setup error screen: try establishing again, or rerun the whole startup if it never got past storage.
   retry(): void {
-    if (this.state() === 'setupError') this.establish();
+    if (this.state() !== 'setupError') return;
+
+    if (this.startupBlocked) this.reloadPage();
+    else this.establish();
   }
 
   whenActive(): Promise<void> {
@@ -41,12 +57,6 @@ export class SessionCoordinator {
 
   private establish(): void {
     this.stateSignal.set('bootstrapping');
-    // Without shared storage the tabs cannot act as one session, so the tab does not run one on its own.
-    if (!this.isStorageAvailable()) {
-      this.stateSignal.set('setupError');
-      return;
-    }
-
     this.sessionHttp.establish().subscribe({
       next: () => {
         this.stateSignal.set('active');

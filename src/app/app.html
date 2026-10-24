@@ -119,7 +119,7 @@
           class="app__inner-content"
           [ngClass]="{ loading: isLoading() && !skeletonType, 'signed-in': isAuthenticated }"
         >
-          @if (isAuthenticated && sessionState() === 'setupError') {
+          @if (sessionState() === 'setupError') {
             <nz-alert
               nzType="error"
               nzMessage="Your session could not be started"

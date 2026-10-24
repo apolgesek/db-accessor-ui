@@ -4,12 +4,12 @@
 
 Work from the repo root. This repo owns the Angular 20 UI. Sibling `db-accessor` owns backend APIs and application CDK; `db-accessor-infra` owns shared DNS, certificates, CloudFront, and static frontend hosting.
 
-- `src/app/app.config.ts`: bootstrap (runtime config, OIDC, `BASE_URL`, auth interceptor, `RouterEventsService`).
+- `src/app/app.config.ts`: providers (OIDC, `BASE_URL`, auth interceptor, `RouterEventsService`); the app initializer `core/app-startup.ts` loads runtime config, checks shared storage, then the OIDC login, then starts the browser login session.
 - `src/app/app.routes.ts`: top-level routes; feature route arrays live beside modules as `*.routes.ts`.
 - `src/app/core/models`: shared DTOs. Prefer extending these before adding duplicate local shapes.
 - HTTP services are thin API wrappers: `modules/admin/services/admin-http.ts` and `modules/my-requests/services/*`.
 - Notifications: `core/services/notification.service.ts` owns HTTP pagination, unread state, and WebSocket messages; `app.ts` loads notifications and connects the socket (with the access token) once the browser login session is active.
-- Browser login session: `core/services/session-coordinator.ts` establishes it at startup (`POST /session`) and owns the session state; `canMatchAuthenticated` waits for `active`; the setup-error screen with Retry is in `app.html`. Shared storage and the WebSocket are injected through `core/shared-storage.ts` and `core/web-socket-factory.ts`.
+- Browser login session: `core/services/session-coordinator.ts` establishes it at startup (`POST /session`) and owns the session state; `canMatchAuthenticated` waits for `active`; the setup-error screen with Retry is in `app.html`. OIDC keeps its state in the same `localStorage`, so unavailable storage stops startup before OIDC runs and Retry reloads the page. Shared storage, page reload, and the WebSocket are injected through `core/shared-storage.ts`, `core/page-reload.ts`, and `core/web-socket-factory.ts`.
 - `src/app/modules/admin/CLAUDE.md`: PII scanning and suggestion rules for the admin module.
 
 ## Verification
