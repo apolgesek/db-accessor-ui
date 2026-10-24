@@ -1,0 +1,183 @@
+import { Component } from '@angular/core';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
+import { provideRouter, Router } from '@angular/router';
+import { OidcSecurityService } from 'angular-auth-oidc-client';
+import { provideNzIcons } from 'ng-zorro-antd/icon';
+import { of, Subject } from 'rxjs';
+import { App } from './app';
+import { BASE_URL } from './core/base-url';
+import { canMatchAuthenticated } from './core/guards/can-match-authenticated.guard';
+import { ConfigService } from './core/services/config.service';
+import { AuthService } from './core/services/auth.service';
+import { LogoutService } from './core/services/logout.service';
+import { SessionCoordinator } from './core/services/session-coordinator';
+import { SHARED_STORAGE } from './core/shared-storage';
+import { WEB_SOCKET_FACTORY } from './core/web-socket-factory';
+import { icons } from './icons-provider';
+
+const API = 'https://api.test';
+const snapshot = { sessionId: 'lineage-1', serverNow: 1_000, idleExpiresAt: 901_000, revision: 1 };
+
+@Component({ template: '<p class="protected-page">My requests</p>' })
+class ProtectedPage {}
+
+describe('application shell session bootstrap', () => {
+  let fixture: ComponentFixture<App>;
+  let http: HttpTestingController;
+  let router: Router;
+  let socketUrls: string[];
+  let logout: jasmine.Spy;
+  let storage: Storage | null;
+
+  function setUp() {
+    socketUrls = [];
+    logout = jasmine.createSpy('logout');
+    TestBed.configureTestingModule({
+      imports: [App],
+      providers: [
+        provideRouter([
+          { path: 'my-requests', canMatch: [canMatchAuthenticated], component: ProtectedPage },
+          { path: 'login', component: ProtectedPage },
+        ]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideNoopAnimations(),
+        provideNzIcons(icons),
+        { provide: BASE_URL, useValue: API },
+        {
+          provide: OidcSecurityService,
+          useValue: {
+            getAccessToken: () => of('fake-access-token'),
+            getIdToken: () => of('fake-id-token'),
+            logoffLocal: () => undefined,
+          },
+        },
+        { provide: SHARED_STORAGE, useValue: storage },
+        {
+          provide: WEB_SOCKET_FACTORY,
+          useValue: (url: string) => {
+            socketUrls.push(url);
+            return new Subject();
+          },
+        },
+        { provide: LogoutService, useValue: { logout } },
+      ],
+    });
+    TestBed.inject(AuthService).isAuthenticated = true;
+    TestBed.inject(ConfigService).webSocketUrl.set('wss://ws.test');
+    http = TestBed.inject(HttpTestingController);
+    router = TestBed.inject(Router);
+    fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+  }
+
+  // Not fixture.whenStable(): it also waits for the router, and navigation waits for the session.
+  async function settle(): Promise<void> {
+    for (let i = 0; i < 3; i++) {
+      await new Promise((resolve) => setTimeout(resolve));
+      fixture.detectChanges();
+    }
+  }
+
+  async function startAndOpenProtectedRoute(): Promise<void> {
+    TestBed.inject(SessionCoordinator).start();
+    void router.navigateByUrl('/my-requests');
+    await settle();
+  }
+
+  const text = () => (fixture.nativeElement as HTMLElement).textContent ?? '';
+
+  beforeEach(() => {
+    storage = window.localStorage;
+  });
+
+  afterEach(() => {
+    http.verify();
+  });
+
+  it('activates routes and notifications only after the backend confirms the session', async () => {
+    setUp();
+    await startAndOpenProtectedRoute();
+
+    const establish = http.expectOne(`${API}/session`);
+    expect(establish.request.method).toBe('POST');
+    expect(text()).not.toContain('My requests');
+    expect(socketUrls).toEqual([]);
+    http.expectNone(`${API}/notifications?limit=5`);
+
+    establish.flush(snapshot, { status: 201, statusText: 'Created' });
+    await settle();
+
+    expect(router.url).toBe('/my-requests');
+    expect(text()).toContain('My requests');
+    http.expectOne(`${API}/notifications?limit=5`).flush({ count: 0, unreadCount: 0, items: [] });
+    expect(socketUrls).toEqual(['wss://ws.test?token=fake-access-token']);
+  });
+
+  it('shows the setup error when the session store is unavailable, and Retry recovers', async () => {
+    setUp();
+    await startAndOpenProtectedRoute();
+
+    http
+      .expectOne(`${API}/session`)
+      .flush(
+        { message: 'Session unavailable', code: 'SESSION_UNAVAILABLE' },
+        { status: 503, statusText: 'Service Unavailable' },
+      );
+    await settle();
+
+    expect(text()).toContain('Your session could not be started');
+    expect(text()).not.toContain('My requests');
+    expect(socketUrls).toEqual([]);
+
+    (fixture.nativeElement as HTMLElement)
+      .querySelector<HTMLButtonElement>('.app__session-retry')!
+      .click();
+    await settle();
+    http.expectOne(`${API}/session`).flush(snapshot, { status: 200, statusText: 'OK' });
+    await settle();
+
+    expect(text()).toContain('My requests');
+    http.expectOne(`${API}/notifications?limit=5`).flush({ count: 0, unreadCount: 0, items: [] });
+  });
+
+  it('shows the setup error when the backend cannot be reached', async () => {
+    setUp();
+    await startAndOpenProtectedRoute();
+
+    http.expectOne(`${API}/session`).error(new ProgressEvent('error'), { status: 0, statusText: 'Unknown Error' });
+    await settle();
+
+    expect(text()).toContain('Your session could not be started');
+    expect(text()).not.toContain('My requests');
+    expect(logout).not.toHaveBeenCalled();
+  });
+
+  it('shows the setup error without contacting the backend when shared storage is unavailable', async () => {
+    storage = null;
+    setUp();
+    await startAndOpenProtectedRoute();
+
+    http.expectNone(`${API}/session`);
+    expect(text()).toContain('Your session could not be started');
+  });
+
+  it('ends the login when the backend refuses to establish its session', async () => {
+    setUp();
+    await startAndOpenProtectedRoute();
+
+    http
+      .expectOne(`${API}/session`)
+      .flush(
+        { message: 'Login required', code: 'LOGIN_REQUIRED' },
+        { status: 401, statusText: 'Unauthorized' },
+      );
+    await settle();
+
+    expect(logout).toHaveBeenCalled();
+    expect(text()).not.toContain('My requests');
+  });
+});
