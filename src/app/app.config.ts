@@ -1,6 +1,7 @@
 import {
   ApplicationConfig,
   inject,
+  Injector,
   provideAppInitializer,
   provideBrowserGlobalErrorListeners,
   provideEnvironmentInitializer,
@@ -32,6 +33,7 @@ import { icons } from './icons-provider';
 import { AuthService } from './core/services/auth.service';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { RouterEventsService } from './core/services/router-events.service';
+import { SessionCoordinator } from './core/services/session-coordinator';
 
 const authFactory = (configService: ConfigService) => {
   const obs$ = toObservable(configService.auth).pipe(
@@ -92,6 +94,7 @@ export const appConfig: ApplicationConfig = {
       const oidcSecurityService = inject(OidcSecurityService);
       const authService = inject(AuthService);
       const lastSignedInAccountService = inject(LastSignedInAccountService);
+      const injector = inject(Injector);
 
       const auth$ = oidcSecurityService.checkAuth().pipe(
         take(1),
@@ -127,7 +130,12 @@ export const appConfig: ApplicationConfig = {
         }),
       );
 
-      return forkJoin([config$, auth$]);
+      // The coordinator reads BASE_URL, so it is resolved only after config.json has loaded.
+      return forkJoin([config$, auth$]).pipe(
+        tap(([, { isAuthenticated }]) => {
+          if (isAuthenticated) injector.get(SessionCoordinator).start();
+        }),
+      );
     }),
     provideHttpClient(withInterceptors([authInterceptor()])),
     provideAuth({

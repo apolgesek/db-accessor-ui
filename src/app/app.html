@@ -119,7 +119,19 @@
           class="app__inner-content"
           [ngClass]="{ loading: isLoading() && !skeletonType, 'signed-in': isAuthenticated }"
         >
-          @if (isLoading() && skeletonType) {
+          @if (isAuthenticated && sessionState() === 'setupError') {
+            <nz-alert
+              nzType="error"
+              nzMessage="Your session could not be started"
+              nzDescription="The service could not confirm your sign-in. Try again in a moment."
+              [nzAction]="sessionRetry"
+            />
+            <ng-template #sessionRetry>
+              <button class="app__session-retry" nz-button nzType="primary" type="button" (click)="retrySession()">
+                Retry
+              </button>
+            </ng-template>
+          } @else if (isLoading() && skeletonType) {
             @switch (skeletonType) {
               @case (1) {
                 <app-loading-skeleton-table></app-loading-skeleton-table>

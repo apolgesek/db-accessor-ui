@@ -8,13 +8,14 @@ Work from the repo root. This repo owns the Angular 20 UI. Sibling `db-accessor`
 - `src/app/app.routes.ts`: top-level routes; feature route arrays live beside modules as `*.routes.ts`.
 - `src/app/core/models`: shared DTOs. Prefer extending these before adding duplicate local shapes.
 - HTTP services are thin API wrappers: `modules/admin/services/admin-http.ts` and `modules/my-requests/services/*`.
-- Notifications: `core/services/notification.service.ts` owns HTTP pagination, unread state, and WebSocket messages; `app.ts` connects/closes the socket.
+- Notifications: `core/services/notification.service.ts` owns HTTP pagination, unread state, and WebSocket messages; `app.ts` loads notifications and connects the socket (with the access token) once the browser login session is active.
+- Browser login session: `core/services/session-coordinator.ts` establishes it at startup (`POST /session`) and owns the session state; `canMatchAuthenticated` waits for `active`; the setup-error screen with Retry is in `app.html`. Shared storage and the WebSocket are injected through `core/shared-storage.ts` and `core/web-socket-factory.ts`.
 - `src/app/modules/admin/CLAUDE.md`: PII scanning and suggestion rules for the admin module.
 
 ## Verification
 
 - Install: `npm ci`. Dev server: `npm run start`.
-- `npm run build` (production by default) is the main check for template/type errors, followed by `npm run lint`; these are the PR CI checks.
+- `npm run build` (production by default) is the main check for template/type errors, followed by `npm run lint`; PR CI runs both plus the Karma suite.
 - `npm test -- --watch=false --browsers=ChromeHeadless` runs Karma/Jasmine and requires Chrome (or `CHROME_BIN`).
 - Build/lint do not verify live API behavior. Documentation-only edits need content/diff checks.
 
@@ -58,7 +59,7 @@ Work from the repo root. This repo owns the Angular 20 UI. Sibling `db-accessor`
 - Make focused changes; avoid unrelated style churn in templates and SCSS.
 - Preserve existing user changes in the working tree.
 - Run the narrowest useful check first, then `npm run build` for route/template/type changes.
-- Use throwaway tests to verify code changes and remove them after verification. Add permanent tests only when explicitly requested.
+- Use throwaway tests to verify code changes and remove them after verification. Add permanent tests only when explicitly requested. Exception: `src/app/app.spec.ts` is the approved permanent application-shell suite for browser login sessions (db-accessor#159); keep it passing, and CI runs it.
 - Starting a dev server is useful for UI work; use `npm run start` and report the local URL.
 - Never commit, deploy, or open PRs unless explicitly asked.
 - When commits are requested, use `feat`, `fix`, `refactor`, or `chore`; CI validates conventional commits and derives release labels from them.

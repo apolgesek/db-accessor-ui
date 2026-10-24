@@ -1,11 +1,10 @@
-import { computed, inject, Injectable, Injector, signal } from '@angular/core';
+import { computed, inject, Injectable, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { WebSocketSubject, webSocket } from 'rxjs/webSocket';
-import { catchError, Observable, of, Subscription, take, tap, throwError } from 'rxjs';
+import { catchError, Observable, of, Subject, Subscription, take, tap, throwError } from 'rxjs';
 import { ConfigService } from './config.service';
 import { OidcSecurityService } from 'angular-auth-oidc-client';
-import { toSignal } from '@angular/core/rxjs-interop';
 import { BASE_URL } from '../base-url';
+import { WEB_SOCKET_FACTORY } from '../web-socket-factory';
 
 export type RequestNotification = {
   id: string;
@@ -54,12 +53,11 @@ export class NotificationService {
   private readonly baseUrl = inject(BASE_URL);
   private readonly configService = inject(ConfigService);
   private readonly oidcService = inject(OidcSecurityService);
-  private readonly injector = inject(Injector);
+  private readonly webSocketFactory = inject(WEB_SOCKET_FACTORY);
   private readonly notificationState = signal<RequestNotification[]>([]);
   private readonly unreadNotificationCountState = signal(0);
-  private socket$: WebSocketSubject<RequestStatusChangedMessage> | null = null;
+  private socket$: Subject<RequestStatusChangedMessage> | null = null;
   private socketSubscription?: Subscription;
-  private token = toSignal(this.oidcService.getIdToken(), { injector: this.injector });
 
   notifications = this.notificationState.asReadonly();
   unreadNotifications = computed(() =>
@@ -136,22 +134,17 @@ export class NotificationService {
       );
   }
 
+  // Connects with the current access token; call only once the browser login session is active.
   connect(): void {
     if (this.socket$) return;
 
-    const token = this.token();
-    if (token) {
-      this.openConnection(token);
-      return;
-    }
-
     this.oidcService
-      .getIdToken()
+      .getAccessToken()
       .pipe(take(1))
-      .subscribe((idToken) => {
-        if (!idToken || this.socket$) return;
+      .subscribe((accessToken) => {
+        if (!accessToken || this.socket$) return;
 
-        this.openConnection(idToken);
+        this.openConnection(accessToken);
       });
   }
 
@@ -174,7 +167,7 @@ export class NotificationService {
     const webSocketUrl = this.configService.webSocketUrl();
     if (!webSocketUrl) return;
 
-    this.socket$ = webSocket<RequestStatusChangedMessage>(
+    this.socket$ = this.webSocketFactory<RequestStatusChangedMessage>(
       `${webSocketUrl}?token=${encodeURIComponent(token)}`,
     );
     this.socketSubscription = this.socket$.subscribe({
