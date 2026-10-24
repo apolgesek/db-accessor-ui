@@ -25,7 +25,6 @@ export class SessionCoordinator {
   private activeWaiters: (() => void)[] = [];
 
   readonly state = this.stateSignal.asReadonly();
-  // The setup error is because the browser blocks shared storage, not because the backend failed.
   readonly storageBlocked = this.storageBlockedSignal.asReadonly();
 
   // Called before the OIDC login is checked, since OIDC keeps its state in the same storage. Without shared
