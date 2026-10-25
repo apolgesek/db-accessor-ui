@@ -24,6 +24,7 @@ Work from the repo root. This repo owns the Angular 20 UI. Sibling `db-accessor`
 - Use standalone components with explicit `imports` arrays. Do not add NgModules.
 - Use `inject(...)` consistently for dependencies unless an existing file uses constructor injection.
 - Prefer `Boolean(value)` over `!!value` when converting values to booleans.
+- Write evergreen comments: what the code alone cannot tell a future reader (intent, constraints, non-obvious reasons). Put the history of a change (an earlier bug, a rejected alternative, a decision reached in conversation) in the commit message or PR description.
 - Keep API DTOs typed. Avoid `any`; shared response/request/ruleset/account/table types belong in `src/app/core/models`.
 - Region selectors use enabled regions per target account from `/accounts.regionsByAccount` through `core/account-regions.ts`. Changing accounts clears the region and cancels stale table reads; missing region data produces no selectable regions.
 - `BASE_URL` is injected from runtime config; do not hardcode API origins in services.
