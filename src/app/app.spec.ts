@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
+import { HttpClient, provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter, Router } from '@angular/router';
@@ -14,6 +14,7 @@ import { canMatchAuthenticated } from './core/guards/can-match-authenticated.gua
 import { LogoutService } from './core/services/logout.service';
 import { PAGE_RELOAD } from './core/page-reload';
 import { SHARED_STORAGE } from './core/shared-storage';
+import { IS_USER_INPUT } from './core/user-input';
 import { WEB_SOCKET_FACTORY } from './core/web-socket-factory';
 import { icons } from './icons-provider';
 
@@ -23,7 +24,7 @@ const snapshot = { sessionId: 'lineage-1', serverNow: 1_000, idleExpiresAt: 901_
 @Component({ template: '<p class="protected-page">My requests</p>' })
 class ProtectedPage {}
 
-describe('application shell session bootstrap', () => {
+describe('application shell browser login session', () => {
   let fixture: ComponentFixture<App>;
   let http: HttpTestingController;
   let router: Router;
@@ -32,6 +33,7 @@ describe('application shell session bootstrap', () => {
   let reloadPage: jasmine.Spy;
   let checkAuth: jasmine.Spy;
   let storage: Storage | null;
+  let userInput: WeakSet<Event>;
 
   function setUp() {
     socketUrls = [];
@@ -72,6 +74,7 @@ describe('application shell session bootstrap', () => {
         },
         { provide: LogoutService, useValue: { logout } },
         { provide: PAGE_RELOAD, useValue: reloadPage },
+        { provide: IS_USER_INPUT, useValue: (event: Event) => userInput.has(event) },
       ],
     });
     http = TestBed.inject(HttpTestingController);
@@ -106,6 +109,7 @@ describe('application shell session bootstrap', () => {
 
   beforeEach(() => {
     storage = window.localStorage;
+    userInput = new WeakSet();
   });
 
   afterEach(() => {
@@ -203,5 +207,148 @@ describe('application shell session bootstrap', () => {
 
     expect(logout).toHaveBeenCalled();
     expect(text()).not.toContain('My requests');
+  });
+
+  describe('qualifying activity', () => {
+    const activityUrl = `${API}/session/activity`;
+
+    // Starts an active session, then takes over the clock so coalescing windows and timeouts can be stepped.
+    async function startActiveSession(): Promise<void> {
+      setUp();
+      await startAndOpenProtectedRoute();
+      http.expectOne(`${API}/session`).flush(snapshot, { status: 201, statusText: 'Created' });
+      await settle();
+      http.expectOne(`${API}/notifications?limit=5`).flush({ count: 0, unreadCount: 0, items: [] });
+      jasmine.clock().install();
+    }
+
+    // Dispatches an event the way user input arrives: on an element inside the app, bubbling.
+    function userEvent(event: Event): void {
+      userInput.add(event);
+      (fixture.nativeElement as HTMLElement).dispatchEvent(event);
+    }
+
+    const press = () => userEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'a' }));
+    const click = () => userEvent(new MouseEvent('click', { bubbles: true }));
+    const reportOk = { ...snapshot, idleExpiresAt: 1_801_000, revision: 2 };
+
+    afterEach(() => {
+      jasmine.clock().uninstall();
+    });
+
+    it('reports the first keydown immediately with an empty body', async () => {
+      await startActiveSession();
+
+      press();
+
+      const report = http.expectOne(activityUrl);
+      expect(report.request.method).toBe('POST');
+      expect(report.request.body).toBeNull();
+      report.flush(reportOk);
+    });
+
+    it('reports further events within 5 seconds exactly once at the end of the window, then stops', async () => {
+      await startActiveSession();
+
+      click();
+      http.expectOne(activityUrl).flush(reportOk);
+      jasmine.clock().tick(1_000);
+      press();
+      jasmine.clock().tick(2_000);
+      click();
+      jasmine.clock().tick(1_999);
+      http.expectNone(activityUrl);
+
+      jasmine.clock().tick(1);
+      http.expectOne(activityUrl).flush(reportOk);
+
+      jasmine.clock().tick(60_000);
+      http.expectNone(activityUrl);
+    });
+
+    it('keeps one report in flight and sends the pending one when it completes', async () => {
+      await startActiveSession();
+
+      press();
+      const slow = http.expectOne(activityUrl);
+      jasmine.clock().tick(1_000);
+      click();
+      jasmine.clock().tick(6_000);
+      http.expectNone(activityUrl);
+
+      slow.flush(reportOk);
+
+      http.expectOne(activityUrl).flush(reportOk);
+      jasmine.clock().tick(60_000);
+      http.expectNone(activityUrl);
+    });
+
+    it('abandons a hung report after 10 seconds without blocking later reports', async () => {
+      await startActiveSession();
+
+      press();
+      const hung = http.expectOne(activityUrl);
+      jasmine.clock().tick(1_000);
+      press();
+      jasmine.clock().tick(8_999);
+      expect(hung.cancelled).toBeFalse();
+      http.expectNone(activityUrl);
+
+      jasmine.clock().tick(1);
+
+      expect(hung.cancelled).toBeTrue();
+      http.expectOne(activityUrl).flush(reportOk);
+    });
+
+    it('does not report scrolling, pointer movement, focus or visibility changes, or synthetic events', async () => {
+      await startActiveSession();
+      const page = fixture.nativeElement as HTMLElement;
+
+      userEvent(new Event('scroll'));
+      userEvent(new WheelEvent('wheel', { bubbles: true }));
+      userEvent(new PointerEvent('pointermove', { bubbles: true }));
+      userEvent(new PointerEvent('pointerdown', { bubbles: true }));
+      userEvent(new FocusEvent('focusin', { bubbles: true }));
+      const visibilityChange = new Event('visibilitychange');
+      userInput.add(visibilityChange);
+      document.dispatchEvent(visibilityChange);
+      page.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'a' }));
+      page.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+      http.expectNone(activityUrl);
+    });
+
+    it('does not report activity before the backend confirms the session', async () => {
+      setUp();
+      await startAndOpenProtectedRoute();
+
+      press();
+      click();
+
+      http.expectNone(activityUrl);
+      http.expectOne(`${API}/session`).flush(snapshot, { status: 201, statusText: 'Created' });
+      await settle();
+      http.expectOne(`${API}/notifications?limit=5`).flush({ count: 0, unreadCount: 0, items: [] });
+      http.expectNone(activityUrl);
+    });
+
+    it('does not report business API requests', async () => {
+      await startActiveSession();
+
+      TestBed.inject(HttpClient).get(`${API}/request`).subscribe();
+      http.expectOne(`${API}/request`).flush([]);
+      jasmine.clock().tick(10_000);
+
+      http.expectNone(activityUrl);
+    });
+  });
+});
+
+describe('user-input check', () => {
+  it('treats script-dispatched events as not coming from the user', () => {
+    const isUserInput = TestBed.inject(IS_USER_INPUT);
+
+    expect(isUserInput(new KeyboardEvent('keydown', { key: 'a' }))).toBeFalse();
+    expect(isUserInput(new MouseEvent('click'))).toBeFalse();
   });
 });

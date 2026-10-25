@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
-import { isSessionRejectionCode } from '../models';
+import { Observable } from 'rxjs';
+import { isSessionRejectionCode, SessionSnapshot } from '../models';
 import { PAGE_RELOAD } from '../page-reload';
 import { SHARED_STORAGE } from '../shared-storage';
 import { ConfigService } from './config.service';
@@ -48,6 +49,11 @@ export class SessionCoordinator {
 
     if (this.storageBlocked()) this.reloadPage();
     else this.establish();
+  }
+
+  // Activity reporter: sends one qualifying-activity report.
+  reportActivity(): Observable<SessionSnapshot> {
+    return this.sessionHttp.recordActivity();
   }
 
   whenActive(): Promise<void> {
