@@ -144,6 +144,7 @@ describe('application shell session bootstrap', () => {
     await settle();
 
     expect(text()).toContain('Your session could not be started');
+    expect(text()).not.toContain('Browser storage is blocked');
     expect(text()).not.toContain('My requests');
     expect(socketUrls).toEqual([]);
 
@@ -170,7 +171,7 @@ describe('application shell session bootstrap', () => {
     expect(logout).not.toHaveBeenCalled();
   });
 
-  it('shows the setup error without checking the login when shared storage is unavailable, and Retry restarts', async () => {
+  it('explains that browser storage is blocked without checking the login, and reloading restarts', async () => {
     storage = null;
     setUp();
     await startAndOpenProtectedRoute();
@@ -178,7 +179,9 @@ describe('application shell session bootstrap', () => {
     // OIDC keeps its state in the same storage, so checking the login would throw.
     expect(checkAuth).not.toHaveBeenCalled();
     http.expectNone(`${API}/session`);
-    expect(text()).toContain('Your session could not be started');
+    expect(text()).toContain('Browser storage is blocked for this site');
+    expect(text()).not.toContain('Your session could not be started');
+    expect(text()).toContain('Reload page');
 
     (fixture.nativeElement as HTMLElement)
       .querySelector<HTMLButtonElement>('.app__session-retry')!

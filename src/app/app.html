@@ -119,18 +119,21 @@
           class="app__inner-content"
           [ngClass]="{ loading: isLoading() && !skeletonType, 'signed-in': isAuthenticated }"
         >
-          @if (sessionState() === 'setupError') {
+          @if (sessionState() === 'setupError' && storageBlocked()) {
+            <nz-alert
+              nzType="error"
+              nzMessage="Browser storage is blocked for this site"
+              nzDescription="This app needs browser storage to keep you signed in. Allow cookies and site data for this site in your browser settings, then reload the page."
+              [nzAction]="sessionRetry"
+            />
+          } @else if (sessionState() === 'setupError') {
             <nz-alert
               nzType="error"
               nzMessage="Your session could not be started"
               nzDescription="The service could not confirm your sign-in. Try again in a moment."
               [nzAction]="sessionRetry"
             />
-            <ng-template #sessionRetry>
-              <button class="app__session-retry" nz-button nzType="primary" type="button" (click)="retrySession()">
-                Retry
-              </button>
-            </ng-template>
+          } @else if (isLoading() && skeletonType) {
           } @else if (isLoading() && skeletonType) {
             @switch (skeletonType) {
               @case (1) {
@@ -143,6 +146,11 @@
           } @else {
             <router-outlet></router-outlet>
           }
+          <ng-template #sessionRetry>
+            <button class="app__session-retry" nz-button nzType="primary" type="button" (click)="retrySession()">
+              {{ storageBlocked() ? 'Reload page' : 'Retry' }}
+            </button>
+          </ng-template>
         </div>
       </div>
     </nz-content>

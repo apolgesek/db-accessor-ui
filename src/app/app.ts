@@ -57,6 +57,7 @@ export class App implements OnDestroy {
   notificationCount = this.notificationService.notificationCount;
   latestNotifications = computed(() => this.notifications().slice(0, 5));
   sessionState = this.sessionCoordinator.state;
+  storageBlocked = this.sessionCoordinator.storageBlocked;
 
   constructor() {
     // Notifications start only once the backend confirms the browser login session.

@@ -21,17 +21,18 @@ export class SessionCoordinator {
   private readonly logoutService = inject(LogoutService);
   private readonly reloadPage = inject(PAGE_RELOAD);
   private readonly stateSignal = signal<SessionState>('bootstrapping');
+  private readonly storageBlockedSignal = signal(false);
   private activeWaiters: (() => void)[] = [];
-  private startupBlocked = false;
 
   readonly state = this.stateSignal.asReadonly();
+  readonly storageBlocked = this.storageBlockedSignal.asReadonly();
 
   // Called before the OIDC login is checked, since OIDC keeps its state in the same storage. Without shared
   // storage the tabs cannot act as one session, so the tab shows the setup error instead of running one alone.
   canStart(): boolean {
     if (this.isStorageAvailable()) return true;
 
-    this.startupBlocked = true;
+    this.storageBlockedSignal.set(true);
     this.stateSignal.set('setupError');
     return false;
   }
@@ -45,7 +46,7 @@ export class SessionCoordinator {
   retry(): void {
     if (this.state() !== 'setupError') return;
 
-    if (this.startupBlocked) this.reloadPage();
+    if (this.storageBlocked()) this.reloadPage();
     else this.establish();
   }
 
