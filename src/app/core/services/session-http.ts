@@ -15,4 +15,9 @@ export class SessionHttp {
   establish(): Observable<SessionSnapshot> {
     return this.http.post<SessionSnapshot>(`${this.baseUrl}/session`, null);
   }
+
+  // Reports qualifying activity; the backend extends the session only while it is still active.
+  recordActivity(): Observable<SessionSnapshot> {
+    return this.http.post<SessionSnapshot>(`${this.baseUrl}/session/activity`, null);
+  }
 }

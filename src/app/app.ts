@@ -19,6 +19,7 @@ import { NotificationService } from './core/services/notification.service';
 import { LastSignedInAccountService } from './auth/last-signed-in-account.service';
 import { LogoutService } from './core/services/logout.service';
 import { SessionCoordinator } from './core/services/session-coordinator';
+import { ActivityReporter } from './core/services/activity-reporter';
 
 @Component({
   selector: 'app-root',
@@ -50,6 +51,7 @@ export class App implements OnDestroy {
   private readonly lastSignedInAccountService = inject(LastSignedInAccountService);
   private readonly logoutService = inject(LogoutService);
   private readonly sessionCoordinator = inject(SessionCoordinator);
+  private readonly activityReporter = inject(ActivityReporter);
 
   appVersion = this.configService.version;
   notifications = this.notificationService.notifications;
@@ -60,6 +62,8 @@ export class App implements OnDestroy {
   storageBlocked = this.sessionCoordinator.storageBlocked;
 
   constructor() {
+    this.activityReporter.start();
+
     // Notifications start only once the backend confirms the browser login session.
     effect(() => {
       if (this.sessionState() === 'active') {
@@ -72,6 +76,7 @@ export class App implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.activityReporter.stop();
     this.notificationService.closeConnection();
   }
 
